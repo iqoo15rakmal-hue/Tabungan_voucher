@@ -21,6 +21,8 @@
       --amber-bg: rgba(245, 158, 11, 0.14);
       --red: #ef4444;
       --red-bg: rgba(239, 68, 68, 0.14);
+      --purple: #a855f7;
+      --purple-bg: rgba(168, 85, 247, 0.15);
       --radius: 14px;
     }
 
@@ -84,6 +86,12 @@
       margin-bottom: 14px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     }
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
     .hero-label { font-size: 12px; color: #bfdbfe; font-weight: 500; }
     .hero-balance { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin: 4px 0 12px; }
     .hero-stats {
@@ -95,6 +103,44 @@
     }
     .stat-box span { display: block; font-size: 11px; color: #bfdbfe; }
     .stat-box strong { font-size: 15px; font-weight: 700; }
+    .refresh-btn {
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(15, 23, 42, 0.35);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 7px 11px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .refresh-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+    .progress-bar-wrap {
+      display: none;
+      margin-bottom: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+    .progress-bar-wrap.show { display: block; }
+    .progress-track {
+      height: 6px;
+      background: #0f172a;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      width: 0%;
+      transition: width 0.2s ease;
+    }
 
     /* Nominal Chips */
     .chips-scroll {
@@ -183,7 +229,7 @@
       border-color: var(--primary);
     }
     textarea {
-      min-height: 190px;
+      min-height: 175px;
       resize: vertical;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 12px;
@@ -199,7 +245,7 @@
       padding: 13px;
       transition: opacity 0.15s ease;
     }
-    .voucher-card.used { opacity: 0.62; }
+    .voucher-card.used { opacity: 0.68; }
     .v-top {
       display: flex;
       justify-content: space-between;
@@ -217,10 +263,25 @@
     .badge-nom { background: rgba(59, 130, 246, 0.18); color: #60a5fa; }
     .badge-ready { background: var(--green-bg); color: var(--green); }
     .badge-used { background: var(--amber-bg); color: var(--amber); }
-    .v-user { font-size: 13px; font-weight: 600; color: var(--text); }
-    .v-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .badge-invalid { background: var(--red-bg); color: var(--red); }
+    .badge-dup { background: var(--purple-bg); color: #c084fc; }
+    .v-user { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .v-title { font-size: 12px; color: var(--text); font-weight: 600; margin-bottom: 4px; }
+    .v-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+    .v-meta code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #cbd5e1;
+      font-size: 10.5px;
+    }
     .v-link {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 11px;
       color: #93c5fd;
       background: rgba(15, 23, 42, 0.65);
@@ -233,8 +294,41 @@
     }
     .v-actions {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr auto;
+      grid-template-columns: 1fr 1fr 1fr auto auto;
+      gap: 6px;
+    }
+
+    /* Validation Result List */
+    .val-list {
+      display: flex;
+      flex-direction: column;
       gap: 7px;
+      max-height: 290px;
+      overflow-y: auto;
+      margin: 10px 0 12px;
+    }
+    .val-item {
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 11.5px;
+    }
+    .val-item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .val-item-link {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 10.5px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     /* Buttons */
@@ -254,9 +348,10 @@
       transition: transform 0.08s ease, background 0.15s ease;
     }
     .btn:active { transform: scale(0.97); }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
     .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
     .btn-green { background: var(--green-bg); border-color: rgba(16, 185, 129, 0.35); color: #34d399; }
+    .btn-green-solid { background: var(--green); border-color: var(--green); color: #052e16; font-weight: 700; }
     .btn-amber { background: var(--amber-bg); border-color: rgba(245, 158, 11, 0.35); color: #fbbf24; }
     .btn-red { background: var(--red-bg); border-color: rgba(239, 68, 68, 0.35); color: #f87171; }
     .btn-full { width: 100%; padding: 12px; font-size: 13px; }
@@ -424,13 +519,23 @@
     <!-- VIEW 1: VAULT -->
     <section id="view-vault" class="view active">
       <div class="hero-card">
-        <div class="hero-label">Total Saldo Voucher Aktif</div>
-        <div class="hero-balance" id="totalBalance">Rp 0</div>
+        <div class="hero-top">
+          <div>
+            <div class="hero-label">Total Saldo Voucher Aktif</div>
+            <div class="hero-balance" id="totalBalance">Rp 0</div>
+          </div>
+          <button class="refresh-btn" id="btnRefreshAll">🔄 Refresh Status</button>
+        </div>
         <div class="hero-stats">
           <div class="stat-box"><span>Ready</span><strong id="statReady">0</strong></div>
           <div class="stat-box"><span>Terpakai</span><strong id="statUsed">0</strong></div>
           <div class="stat-box"><span>Total</span><strong id="statTotal">0</strong></div>
         </div>
+      </div>
+
+      <div class="progress-bar-wrap" id="refreshProgress">
+        <div id="refreshProgressText">Memeriksa voucher...</div>
+        <div class="progress-track"><div class="progress-fill" id="refreshProgressFill"></div></div>
       </div>
 
       <div class="chips-scroll" id="nominalChips"></div>
@@ -441,34 +546,43 @@
           <button data-status="used">Terpakai</button>
           <button data-status="all">Semua</button>
         </div>
-        <input type="search" id="searchInput" class="input" placeholder="Cari username, nominal, atau potongan link..." />
+        <input type="search" id="searchInput" class="input" placeholder="Cari ID voucher, username, nominal, atau link..." />
       </div>
 
       <div id="voucherList" class="voucher-list"></div>
     </section>
 
-    <!-- VIEW 2: INPUT -->
+    <!-- VIEW 2: INPUT & VALIDASI -->
     <section id="view-input" class="view">
       <div class="panel">
-        <div class="panel-title">Input Massal Voucher</div>
-        <div class="panel-sub">Tempel format <code>DEALS — KODE / LINK</code>. Nominal (25RB / 50RB / 100RB / lainnya) otomatis terdeteksi &amp; duplikat dilewati.</div>
+        <div class="panel-title">Input &amp; Validasi Link Voucher</div>
+        <div class="panel-sub">Cukup tempel <b>link polos</b> <code>https://e.uvcr.me/...</code> atau format <code>DEALS</code>. Sistem akan mengecek nominal asli, status aktif/terpakai, dan menyaring link/ID dobel sebelum disimpan.</div>
 
-        <textarea id="bulkInput" placeholder="Tempel teks voucher di sini...
+        <textarea id="bulkInput" placeholder="Tempel 1 atau banyak link e.uvcr.me di sini...
 
-Contoh:
-👤 76ghpxibzz
-• Indomaret Rp25RB Voucher
-  Link: https://e.uvcr.me/..."></textarea>
+Contoh link polos:
+https://e.uvcr.me/xxxx/yyyy
+https://e.uvcr.me/aaaa/bbbb"></textarea>
 
         <div class="preview-box" id="parsePreview">
-          Tempel teks di atas untuk melihat hasil deteksi otomatis.
+          Tempel link di atas, lalu tekan <b>Validasi Link</b> untuk cek status &amp; nominal otomatis.
         </div>
 
         <div class="grid-2" style="margin-bottom: 8px;">
-          <button class="btn" id="btnSample">Isi Contoh</button>
           <button class="btn" id="btnClearInput">Bersihkan</button>
+          <button class="btn btn-primary" id="btnValidate">🔍 Validasi Link (0)</button>
         </div>
-        <button class="btn btn-primary btn-full" id="btnSaveParsed">Simpan ke Tabungan (0)</button>
+
+        <div class="progress-bar-wrap" id="valProgress">
+          <div id="valProgressText">Memvalidasi...</div>
+          <div class="progress-track"><div class="progress-fill" id="valProgressFill"></div></div>
+        </div>
+
+        <div id="validationSection" style="display:none; margin-top: 12px;">
+          <div class="preview-box" id="validationSummary" style="margin-bottom: 8px;"></div>
+          <div class="val-list" id="validationList"></div>
+          <button class="btn btn-green-solid btn-full" id="btnSaveValidated" disabled>💾 Simpan Voucher Valid (0)</button>
+        </div>
       </div>
     </section>
 
@@ -514,7 +628,8 @@ Contoh:
 
       <div class="panel">
         <div class="panel-title">Backup &amp; Kelola Data</div>
-        <div class="panel-sub">Data tersimpan lokal di perangkat ini. Backup rutin ke JSON biar aman saat pindah HP / clear cache.</div>
+        <div class="panel-sub">Data tersimpan lokal di perangkat ini. Gunakan <b>Cek Duplikat</b> untuk membersihkan link/ID kembar di stok lama.</div>
+        <button class="btn btn-full" id="btnDedupeVault" style="margin-bottom: 8px;">🧹 Cek &amp; Bersihkan Duplikat Stok</button>
         <div class="grid-2" style="margin-bottom: 8px;">
           <button class="btn" id="btnBackupJson">Backup JSON</button>
           <button class="btn" id="btnRestoreJson">Restore JSON</button>
@@ -544,6 +659,7 @@ Contoh:
   <script>
     const STORAGE_KEY = 'voucher_vault_indomaret_v1';
     const WORKER_URL = 'https://voucher-bot.iqoo15rakmal.workers.dev';
+    const CHECK_BATCH_SIZE = 8;
     const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
     if (tg && tg.initData) {
@@ -567,9 +683,12 @@ Contoh:
     let filterNominal = 'all';
     let filterStatus = 'ready';
     let searchQuery = '';
-    let parsedCache = [];
+    let preParsedItems = [];
+    let preDupItems = [];
+    let validatedReadyItems = [];
     let lastDeleted = null;
     let toastTimer = null;
+    let isBusy = false;
 
     function loadData() {
       try {
@@ -584,7 +703,19 @@ Contoh:
       localStorage.setItem(STORAGE_KEY, JSON.stringify(vouchers));
     }
 
-    // Helpers
+    // Normalisasi Link untuk deteksi anti-duplikat akurat
+    function normalizeLink(raw) {
+      const cleaned = String(raw || '').trim().replace(/[.,;!?)\]]+$/, '');
+      try {
+        const u = new URL(cleaned);
+        const host = u.hostname.toLowerCase();
+        const path = u.pathname.replace(/\/+$/, '');
+        return `https://${host}${path}`;
+      } catch {
+        return cleaned.replace(/\/+$/, '').toLowerCase();
+      }
+    }
+
     function formatRupiah(num) {
       if (!num) return 'Rp 0';
       return 'Rp ' + Number(num).toLocaleString('id-ID');
@@ -619,13 +750,9 @@ Contoh:
         .replace(/'/g, '&#39;');
     }
 
-    function parseNominal(text) {
-      if (!text) return 0;
-      const mRb = text.match(/(?:rp\.?\s*)?(\d+(?:[.,]\d+)?)\s*(rb|ribu|k)\b/i);
-      if (mRb) return Math.round(parseFloat(mRb[1].replace(',', '.')) * 1000);
-      const mFull = text.match(/rp\.?\s*(\d{1,3}(?:[.,]\d{3})+|\d{4,})/i);
-      if (mFull) return parseInt(mFull[1].replace(/[.,]/g, ''), 10) || 0;
-      return 0;
+    function shortDate(str) {
+      if (!str) return '';
+      return String(str).replace(':59', '').replace(':00', '').trim();
     }
 
     function showToast(msg, actionLabel = null, onAction = null) {
@@ -645,7 +772,7 @@ Contoh:
       }
       toast.classList.add('show');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.remove('show'), 3800);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
     }
 
     async function copyText(text) {
@@ -685,16 +812,35 @@ Contoh:
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    // Smart Parser
-    function parseBulkText(rawText) {
+    // API Helper: cek batch link ke Worker
+    async function checkLinksViaWorker(links, onProgress) {
+      const allResults = [];
+      for (let i = 0; i < links.length; i += CHECK_BATCH_SIZE) {
+        const chunk = links.slice(i, i + CHECK_BATCH_SIZE);
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'check', links: chunk }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok || !Array.isArray(data.results)) {
+          throw new Error(data.error || 'Gagal cek link ke server');
+        }
+        allResults.push(...data.results);
+        if (onProgress) onProgress(Math.min(i + chunk.length, links.length), links.length);
+      }
+      return allResults;
+    }
+
+    // Pre-parse teks input (mendukung link polos maupun format DEALS)
+    function preParseInput(rawText) {
       const lines = rawText.split(/\r?\n/);
-      const existingLinks = new Set(vouchers.map(v => v.link.trim()));
+      const existingNorms = new Set(vouchers.map(v => normalizeLink(v.link)));
       const seenInBatch = new Set();
 
       let currentUser = '-';
-      let currentTitle = 'Indomaret Voucher';
-      const valid = [];
-      let duplicateCount = 0;
+      const uniqueToCheck = [];
+      const duplicates = [];
 
       for (const rawLine of lines) {
         const line = rawLine.trim();
@@ -705,70 +851,311 @@ Contoh:
           continue;
         }
 
-        const urlMatch = line.match(/https?:\/\/[^\s]+/i);
-        if (urlMatch) {
-          const link = urlMatch[0].trim();
-          if (existingLinks.has(link) || seenInBatch.has(link)) {
-            duplicateCount++;
-            continue;
+        const urls = line.match(/https?:\/\/[^\s"'<>]+/gi);
+        if (urls) {
+          for (const rawUrl of urls) {
+            const clean = rawUrl.replace(/[.,;!?)\]]+$/, '');
+            const norm = normalizeLink(clean);
+            if (existingNorms.has(norm)) {
+              duplicates.push({ link: clean, norm, reason: 'Sudah ada di tabungan' });
+              continue;
+            }
+            if (seenInBatch.has(norm)) {
+              duplicates.push({ link: clean, norm, reason: 'Link dobel di input ini' });
+              continue;
+            }
+            seenInBatch.add(norm);
+            uniqueToCheck.push({ link: clean, norm, user: currentUser });
           }
-          seenInBatch.add(link);
-          const nominal = parseNominal(currentTitle) || parseNominal(line);
-          valid.push({
-            id: 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-            user: currentUser,
-            title: currentTitle,
-            nominal,
-            link,
-            status: 'ready',
-            createdAt: Date.now(),
-            usedAt: null
-          });
-          continue;
-        }
-
-        if (/^[•\-\*]/.test(line)) {
-          currentTitle = line.replace(/^[•\-\*]\s*/, '').trim();
-        } else if (!line.startsWith('🎫') && /(indomaret|voucher|rp\s*\d|\d+\s*(rb|k))/i.test(line)) {
-          currentTitle = line;
         }
       }
 
-      return { valid, duplicateCount };
+      return { uniqueToCheck, duplicates };
     }
 
-    function updateParsePreview() {
+    function updateInputPreScan() {
       const raw = document.getElementById('bulkInput').value;
       const box = document.getElementById('parsePreview');
-      const saveBtn = document.getElementById('btnSaveParsed');
+      const valBtn = document.getElementById('btnValidate');
+
+      // Reset hasil validasi lama tiap teks berubah
+      validatedReadyItems = [];
+      document.getElementById('validationSection').style.display = 'none';
+      document.getElementById('btnSaveValidated').disabled = true;
 
       if (!raw.trim()) {
-        parsedCache = [];
-        box.innerHTML = 'Tempel teks di atas untuk melihat hasil deteksi otomatis.';
-        saveBtn.textContent = 'Simpan ke Tabungan (0)';
+        preParsedItems = [];
+        preDupItems = [];
+        box.innerHTML = 'Tempel link di atas, lalu tekan <b>Validasi Link</b> untuk cek status &amp; nominal otomatis.';
+        valBtn.textContent = '🔍 Validasi Link (0)';
         return;
       }
 
-      const { valid, duplicateCount } = parseBulkText(raw);
-      parsedCache = valid;
-
-      const grouped = {};
-      let totalValue = 0;
-      for (const v of valid) {
-        grouped[v.nominal] = (grouped[v.nominal] || 0) + 1;
-        totalValue += v.nominal;
-      }
-
-      const badges = Object.entries(grouped)
-        .sort((a, b) => Number(a[0]) - Number(b[0]))
-        .map(([nom, cnt]) => `<span class="badge badge-nom">${formatShortNom(Number(nom))}: ${cnt}x</span>`)
-        .join('');
+      const { uniqueToCheck, duplicates } = preParseInput(raw);
+      preParsedItems = uniqueToCheck;
+      preDupItems = duplicates;
 
       box.innerHTML = `
-        <div><b>${valid.length} voucher baru</b> terdeteksi (${formatRupiah(totalValue)})${duplicateCount ? ` • <span style="color:var(--amber)">${duplicateCount} duplikat dilewati</span>` : ''}</div>
-        <div class="preview-grid">${badges || '<span style="color:var(--muted)">Belum ada link valid</span>'}</div>
+        <div><b>${uniqueToCheck.length} link unik</b> siap divalidasi${duplicates.length ? ` • <span style="color:#c084fc"><b>${duplicates.length} link dobel</b> langsung disaring</span>` : ''}</div>
+        <div style="color:var(--muted); margin-top:4px;">Tekan tombol <b>Validasi Link</b> untuk mengecek nominal, ID voucher, dan status aktif/terpakai.</div>
       `;
-      saveBtn.textContent = `Simpan ke Tabungan (${valid.length})`;
+      valBtn.textContent = `🔍 Validasi Link (${uniqueToCheck.length})`;
+    }
+
+    async function runInputValidation() {
+      if (isBusy) return;
+      if (!preParsedItems.length && !preDupItems.length) {
+        return showToast('Tempel link e.uvcr.me terlebih dahulu');
+      }
+
+      const btn = document.getElementById('btnValidate');
+      const progWrap = document.getElementById('valProgress');
+      const progText = document.getElementById('valProgressText');
+      const progFill = document.getElementById('valProgressFill');
+      const valSec = document.getElementById('validationSection');
+      const valSum = document.getElementById('validationSummary');
+      const valList = document.getElementById('validationList');
+      const saveBtn = document.getElementById('btnSaveValidated');
+
+      if (!preParsedItems.length && preDupItems.length) {
+        valSec.style.display = 'block';
+        validatedReadyItems = [];
+        valSum.innerHTML = `<b>Semua link (${preDupItems.length}) terdeteksi duplikat</b> dan ditolak otomatis.`;
+        valList.innerHTML = preDupItems.map(d => `
+          <div class="val-item">
+            <div class="val-item-top"><span class="badge badge-dup">DUPLIKAT</span><span style="color:#c084fc">${escapeHtml(d.reason)}</span></div>
+            <div class="val-item-link">${escapeHtml(d.link)}</div>
+          </div>
+        `).join('');
+        saveBtn.disabled = true;
+        saveBtn.textContent = '💾 Simpan Voucher Valid (0)';
+        return;
+      }
+
+      isBusy = true;
+      btn.disabled = true;
+      btn.textContent = 'Mengecek...';
+      progWrap.classList.add('show');
+      progText.textContent = `Memvalidasi 0 / ${preParsedItems.length} link...`;
+      progFill.style.width = '5%';
+
+      try {
+        const linksToCheck = preParsedItems.map(x => x.link);
+        const results = await checkLinksViaWorker(linksToCheck, (done, total) => {
+          progText.textContent = `Memvalidasi ${done} / ${total} link...`;
+          progFill.style.width = Math.round((done / total) * 100) + '%';
+        });
+
+        // Anti-duplikat lapis ID Voucher (SV-IDD...)
+        const existingIds = new Set(vouchers.map(v => v.idVoucher).filter(Boolean));
+        const seenIdsInBatch = new Set();
+
+        const readyList = [];
+        const dupList = [...preDupItems];
+        const usedList = [];
+        const invalidList = [];
+
+        results.forEach((r, idx) => {
+          const meta = preParsedItems[idx];
+          if (r.idVoucher && (existingIds.has(r.idVoucher) || seenIdsInBatch.has(r.idVoucher))) {
+            dupList.push({
+              link: meta.link,
+              idVoucher: r.idVoucher,
+              reason: existingIds.has(r.idVoucher) ? `ID ${r.idVoucher} sudah ada di tabungan` : `ID ${r.idVoucher} dobel di batch ini`,
+            });
+            return;
+          }
+
+          if (r.status === 'ready') {
+            if (r.idVoucher) seenIdsInBatch.add(r.idVoucher);
+            readyList.push({
+              id: 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+              user: meta.user || '-',
+              title: r.title || 'Voucher Digital Indomaret',
+              nominal: r.nominal || 0,
+              link: meta.link,
+              idVoucher: r.idVoucher || null,
+              expiredAt: r.expiredAt || null,
+              redeemedAt: null,
+              status: 'ready',
+              createdAt: Date.now(),
+              usedAt: null,
+              lastCheckedAt: Date.now(),
+            });
+          } else if (r.status === 'used') {
+            usedList.push({ ...r, link: meta.link });
+          } else {
+            invalidList.push({ ...r, link: meta.link });
+          }
+        });
+
+        validatedReadyItems = readyList;
+
+        // Ringkasan nominal yang valid
+        const nomCount = {};
+        let totalVal = 0;
+        for (const v of readyList) {
+          nomCount[v.nominal] = (nomCount[v.nominal] || 0) + 1;
+          totalVal += v.nominal;
+        }
+        const nomBadges = Object.entries(nomCount)
+          .sort((a, b) => Number(a[0]) - Number(b[0]))
+          .map(([n, c]) => `<span class="badge badge-nom">${formatShortNom(Number(n))}: ${c}x</span>`)
+          .join('');
+
+        valSum.innerHTML = `
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+            <span class="badge badge-ready">✅ Valid Ready: ${readyList.length}</span>
+            ${dupList.length ? `<span class="badge badge-dup">🟣 Duplikat: ${dupList.length}</span>` : ''}
+            ${usedList.length ? `<span class="badge badge-used">⚠️ Terpakai: ${usedList.length}</span>` : ''}
+            ${invalidList.length ? `<span class="badge badge-invalid">❌ Invalid: ${invalidList.length}</span>` : ''}
+          </div>
+          <div>Total siap simpan: <b>${formatRupiah(totalVal)}</b></div>
+          ${nomBadges ? `<div class="preview-grid">${nomBadges}</div>` : ''}
+        `;
+
+        const cardsHtml = [];
+        for (const v of readyList) {
+          cardsHtml.push(`
+            <div class="val-item">
+              <div class="val-item-top">
+                <div><span class="badge badge-ready">READY</span> <span class="badge badge-nom">${formatShortNom(v.nominal)}</span></div>
+                <span style="color:var(--muted); font-size:10.5px;">Exp: ${escapeHtml(shortDate(v.expiredAt))}</span>
+              </div>
+              <div style="font-size:11px; color:#cbd5e1; margin-bottom:2px;">${escapeHtml(v.idVoucher || v.title)}</div>
+              <div class="val-item-link">${escapeHtml(v.link)}</div>
+            </div>
+          `);
+        }
+        for (const d of dupList) {
+          cardsHtml.push(`
+            <div class="val-item">
+              <div class="val-item-top">
+                <span class="badge badge-dup">DUPLIKAT</span>
+                <span style="color:#c084fc; font-size:10.5px;">${escapeHtml(d.reason)}</span>
+              </div>
+              <div class="val-item-link">${escapeHtml(d.link)}</div>
+            </div>
+          `);
+        }
+        for (const u of usedList) {
+          cardsHtml.push(`
+            <div class="val-item">
+              <div class="val-item-top">
+                <div><span class="badge badge-used">TERPAKAI</span> <span class="badge badge-nom">${formatShortNom(u.nominal)}</span></div>
+                <span style="color:#fbbf24; font-size:10.5px;">${escapeHtml(u.reason)}</span>
+              </div>
+              <div class="val-item-link">${escapeHtml(u.link)}</div>
+            </div>
+          `);
+        }
+        for (const inv of invalidList) {
+          cardsHtml.push(`
+            <div class="val-item">
+              <div class="val-item-top">
+                <span class="badge badge-invalid">INVALID</span>
+                <span style="color:#f87171; font-size:10.5px;">${escapeHtml(inv.reason || 'Link tidak valid')}</span>
+              </div>
+              <div class="val-item-link">${escapeHtml(inv.link)}</div>
+            </div>
+          `);
+        }
+
+        valList.innerHTML = cardsHtml.join('');
+        valSec.style.display = 'block';
+        saveBtn.disabled = readyList.length === 0;
+        saveBtn.textContent = `💾 Simpan Voucher Valid (${readyList.length})`;
+        haptic(readyList.length > 0 ? 'success' : 'error');
+      } catch (err) {
+        haptic('error');
+        showToast('Gagal validasi: ' + (err.message || 'Cek koneksi'));
+      } finally {
+        isBusy = false;
+        btn.disabled = false;
+        btn.textContent = `🔍 Validasi Link (${preParsedItems.length})`;
+        setTimeout(() => progWrap.classList.remove('show'), 600);
+      }
+    }
+
+    // Refresh 1 voucher atau semua voucher Ready
+    async function refreshVouchers(targetList, isSingle = false) {
+      if (isBusy) return;
+      if (!targetList.length) return showToast('Tidak ada voucher Ready untuk dicek');
+
+      const btnAll = document.getElementById('btnRefreshAll');
+      const progWrap = document.getElementById('refreshProgress');
+      const progText = document.getElementById('refreshProgressText');
+      const progFill = document.getElementById('refreshProgressFill');
+
+      isBusy = true;
+      btnAll.disabled = true;
+      if (!isSingle) {
+        progWrap.classList.add('show');
+        progText.textContent = `Memeriksa 0 / ${targetList.length} voucher...`;
+        progFill.style.width = '5%';
+      }
+
+      try {
+        const links = targetList.map(v => v.link);
+        const results = await checkLinksViaWorker(links, (done, total) => {
+          if (!isSingle) {
+            progText.textContent = `Memeriksa ${done} / ${total} voucher...`;
+            progFill.style.width = Math.round((done / total) * 100) + '%';
+          }
+        });
+
+        let stillReady = 0;
+        let becameUsed = 0;
+        let invalidCount = 0;
+
+        results.forEach((r, idx) => {
+          const v = targetList[idx];
+          v.lastCheckedAt = Date.now();
+          if (r.status === 'ready') {
+            v.status = 'ready';
+            v.invalid = false;
+            if (r.nominal) v.nominal = r.nominal;
+            if (r.title) v.title = r.title;
+            if (r.idVoucher) v.idVoucher = r.idVoucher;
+            if (r.expiredAt) v.expiredAt = r.expiredAt;
+            v.redeemedAt = null;
+            stillReady++;
+          } else if (r.status === 'used') {
+            v.status = 'used';
+            v.invalid = false;
+            if (r.nominal) v.nominal = r.nominal;
+            if (r.title) v.title = r.title;
+            if (r.idVoucher) v.idVoucher = r.idVoucher;
+            if (r.expiredAt) v.expiredAt = r.expiredAt;
+            v.redeemedAt = r.redeemedAt || r.reason || 'Sudah terpakai';
+            v.usedAt = v.usedAt || Date.now();
+            becameUsed++;
+          } else if (r.status === 'invalid') {
+            v.invalid = true;
+            invalidCount++;
+          }
+        });
+
+        saveData();
+        renderVault();
+        haptic('success');
+
+        if (isSingle) {
+          const r = results[0];
+          if (r.status === 'ready') showToast(`Ready • ${formatShortNom(r.nominal)}`);
+          else if (r.status === 'used') showToast(`Sudah Terpakai • ${r.redeemedAt || r.rawStatus}`);
+          else showToast(r.reason || 'Link tidak valid');
+        } else {
+          showToast(`Selesai: ${stillReady} Ready, ${becameUsed} Terpakai${invalidCount ? `, ${invalidCount} Invalid` : ''}`);
+        }
+      } catch (err) {
+        haptic('error');
+        showToast('Gagal refresh: ' + (err.message || 'Cek koneksi'));
+      } finally {
+        isBusy = false;
+        btnAll.disabled = false;
+        setTimeout(() => progWrap.classList.remove('show'), 700);
+      }
     }
 
     // Render Vault
@@ -811,7 +1198,7 @@ Contoh:
         if (filterStatus !== 'all' && v.status !== filterStatus) return false;
         if (filterNominal !== 'all' && String(v.nominal) !== String(filterNominal)) return false;
         if (q) {
-          const hay = `${v.user} ${v.title} ${v.link} ${formatShortNom(v.nominal)}`.toLowerCase();
+          const hay = `${v.user} ${v.title} ${v.link} ${v.idVoucher || ''} ${formatShortNom(v.nominal)}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
@@ -823,7 +1210,7 @@ Contoh:
           <div class="empty">
             <div class="emoji">📭</div>
             <div style="font-weight:600; color:var(--text); margin-bottom:4px;">Belum ada voucher di filter ini</div>
-            <div style="font-size:12px;">Pindah ke tab <b>Input</b> untuk menambahkan stok voucher baru.</div>
+            <div style="font-size:12px;">Pindah ke tab <b>Input</b> untuk memvalidasi &amp; menambahkan stok baru.</div>
           </div>`;
         return;
       }
@@ -833,11 +1220,21 @@ Contoh:
           <div class="v-top">
             <div class="v-badges">
               <span class="badge badge-nom">${formatShortNom(v.nominal)}</span>
-              <span class="badge ${v.status === 'ready' ? 'badge-ready' : 'badge-used'}">${v.status === 'ready' ? 'READY' : 'TERPAKAI'}</span>
+              ${v.invalid
+                ? `<span class="badge badge-invalid">INVALID</span>`
+                : `<span class="badge ${v.status === 'ready' ? 'badge-ready' : 'badge-used'}">${v.status === 'ready' ? 'READY' : 'TERPAKAI'}</span>`
+              }
             </div>
-            <div class="v-user">👤 ${escapeHtml(v.user)}</div>
+            ${v.user && v.user !== '-' ? `<div class="v-user">👤 ${escapeHtml(v.user)}</div>` : ''}
           </div>
           <div class="v-title">${escapeHtml(v.title)}</div>
+          ${(v.idVoucher || v.expiredAt || v.redeemedAt) ? `
+            <div class="v-meta">
+              ${v.idVoucher ? `<span>ID: <code>${escapeHtml(v.idVoucher)}</code></span>` : ''}
+              ${v.expiredAt ? `<span>Exp: ${escapeHtml(shortDate(v.expiredAt))}</span>` : ''}
+              ${v.redeemedAt ? `<span style="color:#fbbf24;">Ditukar: ${escapeHtml(v.redeemedAt)}</span>` : ''}
+            </div>
+          ` : ''}
           <div class="v-link">${escapeHtml(v.link)}</div>
           <div class="v-actions">
             <button class="btn btn-primary" data-act="open" data-id="${v.id}">Buka</button>
@@ -845,6 +1242,7 @@ Contoh:
             <button class="btn ${v.status === 'ready' ? 'btn-green' : 'btn-amber'}" data-act="toggle" data-id="${v.id}">
               ${v.status === 'ready' ? 'Pakai' : 'Batal'}
             </button>
+            <button class="btn" data-act="refresh" data-id="${v.id}" title="Refresh Status">🔄</button>
             <button class="btn btn-red" data-act="del" data-id="${v.id}" title="Hapus">🗑</button>
           </div>
         </div>
@@ -865,6 +1263,11 @@ Contoh:
             await copyText(item.link);
             haptic('success');
             showToast('Link berhasil dicopy');
+          } else if (act === 'refresh') {
+            haptic('light');
+            btn.textContent = '⏳';
+            btn.disabled = true;
+            await refreshVouchers([item], true);
           } else if (act === 'toggle') {
             item.status = item.status === 'ready' ? 'used' : 'ready';
             item.usedAt = item.status === 'used' ? Date.now() : null;
@@ -960,6 +1363,15 @@ Contoh:
     });
 
     // Vault events
+    document.getElementById('btnRefreshAll').onclick = () => {
+      const target = vouchers.filter(v => {
+        if (v.status !== 'ready') return false;
+        if (filterNominal !== 'all' && String(v.nominal) !== String(filterNominal)) return false;
+        return true;
+      });
+      refreshVouchers(target, false);
+    };
+
     document.querySelectorAll('#statusFilter button').forEach(btn => {
       btn.onclick = () => {
         filterStatus = btn.dataset.status;
@@ -968,51 +1380,45 @@ Contoh:
         renderVault();
       };
     });
+
     document.getElementById('searchInput').oninput = e => {
       searchQuery = e.target.value;
       renderVault();
     };
 
-    // Input events
-    document.getElementById('bulkInput').oninput = updateParsePreview;
+    // Input & Validation events
+    document.getElementById('bulkInput').oninput = updateInputPreScan;
     document.getElementById('btnClearInput').onclick = () => {
       document.getElementById('bulkInput').value = '';
-      updateParsePreview();
+      updateInputPreScan();
     };
-    document.getElementById('btnSample').onclick = () => {
-      document.getElementById('bulkInput').value = `🎫 DEALS — KODE / LINK
-
-👤 76ghpxibzz
-
-• Indomaret Rp25RB Voucher
-
-  Link: https://e.uvcr.me/59e04e7b6aa05e42b20147eca00ffcf4/fae5ef9c881828196a83d4cd2fefb6a5
-
-👤 25vmos0y4t
-
-• Indomaret Rp50RB Voucher
-
-  Link: https://e.uvcr.me/04b3e9143d595ec38b1344048f32a1b1/abdf81acc0d031fd291b1698fe7167eb
-
-👤 lln31605vy
-
-• Indomaret Rp100RB Voucher
-
-  Link: https://e.uvcr.me/e4ae038eb0a45dd099a3afc4da8ada1c/edb8b63fa9cafd3aa8a77884699c95bd`;
-      updateParsePreview();
-    };
-    document.getElementById('btnSaveParsed').onclick = () => {
-      if (!parsedCache.length) {
-        showToast('Tidak ada voucher baru untuk disimpan');
-        return;
+    document.getElementById('btnValidate').onclick = runInputValidation;
+    document.getElementById('btnSaveValidated').onclick = () => {
+      if (!validatedReadyItems.length) {
+        return showToast('Belum ada voucher valid untuk disimpan');
       }
-      const added = parsedCache.length;
-      vouchers = [...parsedCache, ...vouchers];
+      // Double-check anti-duplikat terakhir saat klik simpan
+      const existingNorms = new Set(vouchers.map(v => normalizeLink(v.link)));
+      const existingIds = new Set(vouchers.map(v => v.idVoucher).filter(Boolean));
+      const finalAdd = validatedReadyItems.filter(v => {
+        const n = normalizeLink(v.link);
+        if (existingNorms.has(n)) return false;
+        if (v.idVoucher && existingIds.has(v.idVoucher)) return false;
+        existingNorms.add(n);
+        if (v.idVoucher) existingIds.add(v.idVoucher);
+        return true;
+      });
+
+      if (!finalAdd.length) {
+        return showToast('Semua voucher tersebut sudah ada di tabungan');
+      }
+
+      vouchers = [...finalAdd, ...vouchers];
       saveData();
       document.getElementById('bulkInput').value = '';
-      updateParsePreview();
+      updateInputPreScan();
       haptic('success');
-      showToast(`${added} voucher masuk ke tabungan!`);
+      showToast(`${finalAdd.length} voucher valid tersimpan!`);
       document.querySelector('.nav-btn[data-tab="vault"]').click();
     };
 
@@ -1088,6 +1494,36 @@ Contoh:
     };
 
     // Backup & Maintenance
+    document.getElementById('btnDedupeVault').onclick = () => {
+      const seenNorms = new Set();
+      const seenIds = new Set();
+      const cleaned = [];
+      let removed = 0;
+
+      for (const v of vouchers) {
+        const norm = normalizeLink(v.link);
+        const hasDupLink = seenNorms.has(norm);
+        const hasDupId = v.idVoucher && seenIds.has(v.idVoucher);
+        if (hasDupLink || hasDupId) {
+          removed++;
+          continue;
+        }
+        seenNorms.add(norm);
+        if (v.idVoucher) seenIds.add(v.idVoucher);
+        cleaned.push(v);
+      }
+
+      if (!removed) {
+        haptic('success');
+        return showToast('Aman! Tidak ada duplikat di tabungan');
+      }
+      vouchers = cleaned;
+      saveData();
+      renderExport();
+      haptic('success');
+      showToast(`${removed} voucher duplikat berhasil dibersihkan`);
+    };
+
     document.getElementById('btnBackupJson').onclick = () => {
       const stamp = new Date().toISOString().slice(0, 10);
       downloadFile(`backup_voucher_vault_${stamp}.json`, JSON.stringify(vouchers, null, 2), 'application/json');
@@ -1103,14 +1539,18 @@ Contoh:
         try {
           const imported = JSON.parse(reader.result);
           if (!Array.isArray(imported)) throw new Error();
-          const existing = new Set(vouchers.map(v => v.link));
+          const existingNorms = new Set(vouchers.map(v => normalizeLink(v.link)));
+          const existingIds = new Set(vouchers.map(v => v.idVoucher).filter(Boolean));
           let added = 0;
           for (const item of imported) {
-            if (item && item.link && !existing.has(item.link)) {
-              vouchers.push(item);
-              existing.add(item.link);
-              added++;
-            }
+            if (!item || !item.link) continue;
+            const norm = normalizeLink(item.link);
+            if (existingNorms.has(norm)) continue;
+            if (item.idVoucher && existingIds.has(item.idVoucher)) continue;
+            vouchers.push(item);
+            existingNorms.add(norm);
+            if (item.idVoucher) existingIds.add(item.idVoucher);
+            added++;
           }
           saveData();
           renderExport();
