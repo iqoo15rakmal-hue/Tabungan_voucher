@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Voucher Vault — Tabungan Voucher Indomaret</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-hover: #263348;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --green: #10b981;
+      --green-bg: rgba(16, 185, 129, 0.14);
+      --amber: #f59e0b;
+      --amber-bg: rgba(245, 158, 11, 0.14);
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.14);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      padding-bottom: 84px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    }
+    .brand h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+    .brand p { font-size: 12px; color: var(--muted); }
+    .env-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+
+    /* Summary Card */
+    .hero-card {
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 60%, #0f172a 100%);
+      border: 1px solid rgba(96, 165, 250, 0.25);
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+    .hero-label { font-size: 12px; color: #bfdbfe; font-weight: 500; }
+    .hero-balance { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin: 4px 0 12px; }
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      padding-top: 12px;
+    }
+    .stat-box span { display: block; font-size: 11px; color: #bfdbfe; }
+    .stat-box strong { font-size: 15px; font-weight: 700; }
+
+    /* Nominal Chips */
+    .chips-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      scrollbar-width: none;
+    }
+    .chips-scroll::-webkit-scrollbar { display: none; }
+    .chip {
+      flex: 0 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .chip .count {
+      background: rgba(148, 163, 184, 0.18);
+      color: var(--muted);
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+    }
+    .chip.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .chip.active .count {
+      background: rgba(255, 255, 255, 0.22);
+      color: #fff;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .segment {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      background: var(--card);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .segment button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+    .segment button.active {
+      background: #334155;
+      color: #fff;
+    }
+
+    .input, textarea, select {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 13px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+    }
+    .input:focus, textarea:focus, select:focus {
+      border-color: var(--primary);
+    }
+    textarea {
+      min-height: 190px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* Voucher Card */
+    .voucher-list { display: flex; flex-direction: column; gap: 10px; }
+    .voucher-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 13px;
+      transition: opacity 0.15s ease;
+    }
+    .voucher-card.used { opacity: 0.62; }
+    .v-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .v-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 7px;
+    }
+    .badge-nom { background: rgba(59, 130, 246, 0.18); color: #60a5fa; }
+    .badge-ready { background: var(--green-bg); color: var(--green); }
+    .badge-used { background: var(--amber-bg); color: var(--amber); }
+    .v-user { font-size: 13px; font-weight: 600; color: var(--text); }
+    .v-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .v-link {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      color: #93c5fd;
+      background: rgba(15, 23, 42, 0.65);
+      padding: 7px 9px;
+      border-radius: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 10px;
+    }
+    .v-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 7px;
+    }
+
+    /* Buttons */
+    .btn {
+      border: 1px solid var(--border);
+      background: #273449;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 9px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: transform 0.08s ease, background 0.15s ease;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-green { background: var(--green-bg); border-color: rgba(16, 185, 129, 0.35); color: #34d399; }
+    .btn-amber { background: var(--amber-bg); border-color: rgba(245, 158, 11, 0.35); color: #fbbf24; }
+    .btn-red { background: var(--red-bg); border-color: rgba(239, 68, 68, 0.35); color: #f87171; }
+    .btn-full { width: 100%; padding: 12px; font-size: 13px; }
+
+    /* Cards & Sections */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 15px;
+      margin-bottom: 14px;
+    }
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .panel-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+    .preview-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin: 12px 0;
+      font-size: 12px;
+    }
+    .preview-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      cursor: pointer;
+      margin: 12px 0;
+      user-select: none;
+    }
+    .checkbox-row input { width: 17px; height: 17px; accent-color: var(--primary); }
+
+    .qty-pills { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 10px; }
+    .qty-pill {
+      padding: 6px 12px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .qty-pill.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      background: var(--card);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+    }
+    .empty .emoji { font-size: 32px; margin-bottom: 8px; }
+
+    /* Views */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* Bottom Nav */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 6px 10px calc(8px + env(safe-area-inset-bottom));
+      z-index: 50;
+    }
+    .nav-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .nav-btn .ico { font-size: 18px; }
+    .nav-btn.active { color: #60a5fa; background: rgba(59, 130, 246, 0.12); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 82px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #020617;
+      border: 1px solid #334155;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 100;
+      max-width: 92vw;
+    }
+    .toast.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+    .toast button {
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      padding: 4px 9px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <div class="brand-icon">🎫</div>
+        <div>
+          <h1>Voucher Vault</h1>
+          <p>Tabungan Voucher Indomaret</p>
+        </div>
+      </div>
+      <span class="env-badge" id="envBadge">Web Mode</span>
+    </div>
+
+    <!-- VIEW 1: VAULT -->
+    <section id="view-vault" class="view active">
+      <div class="hero-card">
+        <div class="hero-label">Total Saldo Voucher Aktif</div>
+        <div class="hero-balance" id="totalBalance">Rp 0</div>
+        <div class="hero-stats">
+          <div class="stat-box"><span>Ready</span><strong id="statReady">0</strong></div>
+          <div class="stat-box"><span>Terpakai</span><strong id="statUsed">0</strong></div>
+          <div class="stat-box"><span>Total</span><strong id="statTotal">0</strong></div>
+        </div>
+      </div>
+
+      <div class="chips-scroll" id="nominalChips"></div>
+
+      <div class="controls">
+        <div class="segment" id="statusFilter">
+          <button data-status="ready" class="active">Ready</button>
+          <button data-status="used">Terpakai</button>
+          <button data-status="all">Semua</button>
+        </div>
+        <input type="search" id="searchInput" class="input" placeholder="Cari username, nominal, atau potongan link..." />
+      </div>
+
+      <div id="voucherList" class="voucher-list"></div>
+    </section>
+
+    <!-- VIEW 2: INPUT -->
+    <section id="view-input" class="view">
+      <div class="panel">
+        <div class="panel-title">Input Massal Voucher</div>
+        <div class="panel-sub">Tempel format <code>DEALS — KODE / LINK</code>. Nominal (25RB / 50RB / 100RB / lainnya) otomatis terdeteksi & duplikat dilewati.</div>
+
+        <textarea id="bulkInput" placeholder="Tempel teks voucher di sini...
+
+Contoh:
+👤 76ghpxibzz
+• Indomaret Rp25RB Voucher
+  Link: https://e.uvcr.me/..."></textarea>
+
+        <div class="preview-box" id="parsePreview">
+          Tempel teks di atas untuk melihat hasil deteksi otomatis.
+        </div>
+
+        <div class="grid-2" style="margin-bottom: 8px;">
+          <button class="btn" id="btnSample">Isi Contoh</button>
+          <button class="btn" id="btnClearInput">Bersihkan</button>
+        </div>
+        <button class="btn btn-primary btn-full" id="btnSaveParsed">Simpan ke Tabungan (0)</button>
+      </div>
+    </section>
+
+    <!-- VIEW 3: EXPORT & BACKUP -->
+    <section id="view-export" class="view">
+      <div class="panel">
+        <div class="panel-title">Export / Tarik Voucher</div>
+        <div class="panel-sub">Ambil voucher yang masih <b>Ready</b> berdasarkan nominal dan jumlah batch.</div>
+
+        <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Filter Nominal</label>
+        <select id="exportNominal" style="margin-bottom: 12px;"></select>
+
+        <label style="font-size:12px; color:var(--muted); display:block;">Jumlah Tarik (Batch)</label>
+        <div class="qty-pills" id="qtyPills">
+          <button class="qty-pill" data-qty="5">5</button>
+          <button class="qty-pill" data-qty="10">10</button>
+          <button class="qty-pill active" data-qty="30">30</button>
+          <button class="qty-pill" data-qty="all">Semua</button>
+        </div>
+        <input type="number" id="exportQtyCustom" class="input" min="1" value="30" placeholder="Atau ketik jumlah custom..." style="margin-bottom:12px;" />
+
+        <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Format Output</label>
+        <select id="exportFormat">
+          <option value="links">Link Saja (1 link per baris)</option>
+          <option value="deals">Format Deals (👤 User + Nominal + Link)</option>
+          <option value="user_link">Username | Link</option>
+        </select>
+
+        <label class="checkbox-row">
+          <input type="checkbox" id="autoMarkUsed" />
+          <span>Otomatis tandai <b>Terpakai</b> setelah Copy / Download</span>
+        </label>
+
+        <div style="font-size:12px; color:var(--muted); margin-bottom:6px;" id="exportSummary">0 voucher siap ditarik</div>
+        <textarea id="exportOutput" readonly style="min-height:150px; margin-bottom:10px;"></textarea>
+
+        <div class="grid-3">
+          <button class="btn btn-primary" id="btnCopyExport">Copy</button>
+          <button class="btn" id="btnDlTxt">Save .TXT</button>
+          <button class="btn" id="btnDlHtml">Save .HTML</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Backup & Kelola Data</div>
+        <div class="panel-sub">Data tersimpan lokal di perangkat ini. Backup rutin ke JSON biar aman saat pindah HP / clear cache.</div>
+        <div class="grid-2" style="margin-bottom: 8px;">
+          <button class="btn" id="btnBackupJson">Backup JSON</button>
+          <button class="btn" id="btnRestoreJson">Restore JSON</button>
+          <input type="file" id="restoreFile" accept=".json" hidden />
+        </div>
+        <div class="grid-2">
+          <button class="btn btn-amber" id="btnPurgeUsed">Hapus yg Terpakai</button>
+          <button class="btn btn-red" id="btnResetAll">Reset Semua</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="vault"><span class="ico">🏦</span><span>Tabungan</span></button>
+    <button class="nav-btn" data-tab="input"><span class="ico">➕</span><span>Input</span></button>
+    <button class="nav-btn" data-tab="export"><span class="ico">📤</span><span>Export</span></button>
+  </nav>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <span id="toastMsg"></span>
+    <button id="toastAction" style="display:none;"></button>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'voucher_vault_indomaret_v1';
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+
+    if (tg && tg.initData) {
+      tg.ready();
+      tg.expand();
+      document.getElementById('envBadge').textContent = 'Telegram Mini App';
+    }
+
+    function haptic(type = 'light') {
+      try {
+        if (tg && tg.HapticFeedback) {
+          if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+          else tg.HapticFeedback.impactOccurred(type);
+        }
+      } catch (_) {}
+    }
+
+    // State
+    let vouchers = loadData();
+    let filterNominal = 'all';
+    let filterStatus = 'ready';
+    let searchQuery = '';
+    let parsedCache = [];
+    let lastDeleted = null;
+    let toastTimer = null;
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(vouchers));
+    }
+
+    // Helpers
+    function formatRupiah(num) {
+      if (!num) return 'Rp 0';
+      return 'Rp ' + Number(num).toLocaleString('id-ID');
+    }
+
+    function formatShortNom(num) {
+      if (!num || num <= 0) return 'Lainnya';
+      if (num >= 1000 && num % 1000 === 0) return 'Rp' + (num / 1000) + 'RB';
+      return 'Rp' + num.toLocaleString('id-ID');
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function parseNominal(text) {
+      if (!text) return 0;
+      const mRb = text.match(/(?:rp\.?\s*)?(\d+(?:[.,]\d+)?)\s*(rb|ribu|k)\b/i);
+      if (mRb) return Math.round(parseFloat(mRb[1].replace(',', '.')) * 1000);
+      const mFull = text.match(/rp\.?\s*(\d{1,3}(?:[.,]\d{3})+|\d{4,})/i);
+      if (mFull) return parseInt(mFull[1].replace(/[.,]/g, ''), 10) || 0;
+      return 0;
+    }
+
+    function showToast(msg, actionLabel = null, onAction = null) {
+      const toast = document.getElementById('toast');
+      const msgEl = document.getElementById('toastMsg');
+      const btnEl = document.getElementById('toastAction');
+      msgEl.textContent = msg;
+      if (actionLabel && onAction) {
+        btnEl.textContent = actionLabel;
+        btnEl.style.display = 'inline-block';
+        btnEl.onclick = () => {
+          onAction();
+          toast.classList.remove('show');
+        };
+      } else {
+        btnEl.style.display = 'none';
+      }
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 3600);
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      }
+    }
+
+    function openExternal(url) {
+      if (tg && tg.initData && tg.openLink) {
+        tg.openLink(url);
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    }
+
+    function downloadFile(filename, content, mime) {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    // Smart Parser
+    function parseBulkText(rawText) {
+      const lines = rawText.split(/\r?\n/);
+      const existingLinks = new Set(vouchers.map(v => v.link.trim()));
+      const seenInBatch = new Set();
+
+      let currentUser = '-';
+      let currentTitle = 'Indomaret Voucher';
+      const valid = [];
+      let duplicateCount = 0;
+
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+
+        if (line.startsWith('👤')) {
+          currentUser = line.replace(/^👤\s*/, '').trim() || '-';
+          continue;
+        }
+
+        const urlMatch = line.match(/https?:\/\/[^\s]+/i);
+        if (urlMatch) {
+          const link = urlMatch[0].trim();
+          if (existingLinks.has(link) || seenInBatch.has(link)) {
+            duplicateCount++;
+            continue;
+          }
+          seenInBatch.add(link);
+          const nominal = parseNominal(currentTitle) || parseNominal(line);
+          valid.push({
+            id: 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+            user: currentUser,
+            title: currentTitle,
+            nominal,
+            link,
+            status: 'ready',
+            createdAt: Date.now(),
+            usedAt: null
+          });
+          continue;
+        }
+
+        if (/^[•\-\*]/.test(line)) {
+          currentTitle = line.replace(/^[•\-\*]\s*/, '').trim();
+        } else if (!line.startsWith('🎫') && /(indomaret|voucher|rp\s*\d|\d+\s*(rb|k))/i.test(line)) {
+          currentTitle = line;
+        }
+      }
+
+      return { valid, duplicateCount };
+    }
+
+    function updateParsePreview() {
+      const raw = document.getElementById('bulkInput').value;
+      const box = document.getElementById('parsePreview');
+      const saveBtn = document.getElementById('btnSaveParsed');
+
+      if (!raw.trim()) {
+        parsedCache = [];
+        box.innerHTML = 'Tempel teks di atas untuk melihat hasil deteksi otomatis.';
+        saveBtn.textContent = 'Simpan ke Tabungan (0)';
+        return;
+      }
+
+      const { valid, duplicateCount } = parseBulkText(raw);
+      parsedCache = valid;
+
+      const grouped = {};
+      let totalValue = 0;
+      for (const v of valid) {
+        grouped[v.nominal] = (grouped[v.nominal] || 0) + 1;
+        totalValue += v.nominal;
+      }
+
+      const badges = Object.entries(grouped)
+        .sort((a, b) => Number(a[0]) - Number(b[0]))
+        .map(([nom, cnt]) => `<span class="badge badge-nom">${formatShortNom(Number(nom))}: ${cnt}x</span>`)
+        .join('');
+
+      box.innerHTML = `
+        <div><b>${valid.length} voucher baru</b> terdeteksi (${formatRupiah(totalValue)})${duplicateCount ? ` • <span style="color:var(--amber)">${duplicateCount} duplikat dilewati</span>` : ''}</div>
+        <div class="preview-grid">${badges || '<span style="color:var(--muted)">Belum ada link valid</span>'}</div>
+      `;
+      saveBtn.textContent = `Simpan ke Tabungan (${valid.length})`;
+    }
+
+    // Render Vault
+    function renderVault() {
+      const readyItems = vouchers.filter(v => v.status === 'ready');
+      const usedItems = vouchers.filter(v => v.status === 'used');
+      const totalSaldo = readyItems.reduce((sum, v) => sum + (v.nominal || 0), 0);
+
+      document.getElementById('totalBalance').textContent = formatRupiah(totalSaldo);
+      document.getElementById('statReady').textContent = readyItems.length;
+      document.getElementById('statUsed').textContent = usedItems.length;
+      document.getElementById('statTotal').textContent = vouchers.length;
+
+      // Nominal Chips (hitung dari status yg sedang aktif biar informatif)
+      const baseForChips = filterStatus === 'all' ? vouchers : vouchers.filter(v => v.status === filterStatus);
+      const nomMap = {};
+      for (const v of baseForChips) {
+        nomMap[v.nominal] = (nomMap[v.nominal] || 0) + 1;
+      }
+      // Pastikan nominal aktif tetap tampil meski 0
+      const allNoms = Array.from(new Set(vouchers.map(v => v.nominal))).sort((a, b) => a - b);
+
+      const chipsEl = document.getElementById('nominalChips');
+      let chipsHtml = `<button class="chip ${filterNominal === 'all' ? 'active' : ''}" data-nom="all">Semua <span class="count">${baseForChips.length}</span></button>`;
+      for (const nom of allNoms) {
+        const cnt = nomMap[nom] || 0;
+        const active = String(filterNominal) === String(nom) ? 'active' : '';
+        chipsHtml += `<button class="chip ${active}" data-nom="${nom}">${formatShortNom(nom)} <span class="count">${cnt}</span></button>`;
+      }
+      chipsEl.innerHTML = chipsHtml;
+
+      chipsEl.querySelectorAll('.chip').forEach(btn => {
+        btn.onclick = () => {
+          filterNominal = btn.dataset.nom;
+          haptic('light');
+          renderVault();
+        };
+      });
+
+      // Filter List
+      const q = searchQuery.trim().toLowerCase();
+      const filtered = vouchers.filter(v => {
+        if (filterStatus !== 'all' && v.status !== filterStatus) return false;
+        if (filterNominal !== 'all' && String(v.nominal) !== String(filterNominal)) return false;
+        if (q) {
+          const hay = `${v.user} ${v.title} ${v.link} ${formatShortNom(v.nominal)}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      const listEl = document.getElementById('voucherList');
+      if (!filtered.length) {
+        listEl.innerHTML = `
+          <div class="empty">
+            <div class="emoji">📭</div>
+            <div style="font-weight:600; color:var(--text); margin-bottom:4px;">Belum ada voucher di filter ini</div>
+            <div style="font-size:12px;">Pindah ke tab <b>Input</b> untuk menambahkan stok voucher baru.</div>
+          </div>`;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(v => `
+        <div class="voucher-card ${v.status === 'used' ? 'used' : ''}">
+          <div class="v-top">
+            <div class="v-badges">
+              <span class="badge badge-nom">${formatShortNom(v.nominal)}</span>
+              <span class="badge ${v.status === 'ready' ? 'badge-ready' : 'badge-used'}">${v.status === 'ready' ? 'READY' : 'TERPAKAI'}</span>
+            </div>
+            <div class="v-user">👤 ${escapeHtml(v.user)}</div>
+          </div>
+          <div class="v-title">${escapeHtml(v.title)}</div>
+          <div class="v-link">${escapeHtml(v.link)}</div>
+          <div class="v-actions">
+            <button class="btn btn-primary" data-act="open" data-id="${v.id}">Buka</button>
+            <button class="btn" data-act="copy" data-id="${v.id}">Copy</button>
+            <button class="btn ${v.status === 'ready' ? 'btn-green' : 'btn-amber'}" data-act="toggle" data-id="${v.id}">
+              ${v.status === 'ready' ? 'Pakai' : 'Batal'}
+            </button>
+            <button class="btn btn-red" data-act="del" data-id="${v.id}" title="Hapus">🗑</button>
+          </div>
+        </div>
+      `).join('');
+
+      listEl.querySelectorAll('button[data-act]').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const act = btn.dataset.act;
+          const idx = vouchers.findIndex(x => x.id === id);
+          if (idx === -1) return;
+          const item = vouchers[idx];
+
+          if (act === 'open') {
+            haptic('light');
+            openExternal(item.link);
+          } else if (act === 'copy') {
+            await copyText(item.link);
+            haptic('success');
+            showToast('Link berhasil dicopy');
+          } else if (act === 'toggle') {
+            item.status = item.status === 'ready' ? 'used' : 'ready';
+            item.usedAt = item.status === 'used' ? Date.now() : null;
+            saveData();
+            haptic('medium');
+            renderVault();
+            showToast(item.status === 'used' ? 'Ditandai terpakai' : 'Dikembalikan ke Ready');
+          } else if (act === 'del') {
+            lastDeleted = { item, index: idx };
+            vouchers.splice(idx, 1);
+            saveData();
+            haptic('medium');
+            renderVault();
+            showToast('Voucher dihapus', 'Undo', () => {
+              if (lastDeleted) {
+                vouchers.splice(lastDeleted.index, 0, lastDeleted.item);
+                saveData();
+                renderVault();
+                lastDeleted = null;
+              }
+            });
+          }
+        };
+      });
+    }
+
+    // Export Logic
+    function populateExportNominals() {
+      const sel = document.getElementById('exportNominal');
+      const prev = sel.value || 'all';
+      const ready = vouchers.filter(v => v.status === 'ready');
+      const map = {};
+      for (const v of ready) map[v.nominal] = (map[v.nominal] || 0) + 1;
+      const noms = Object.keys(map).map(Number).sort((a, b) => a - b);
+
+      let html = `<option value="all">Semua Ready (${ready.length})</option>`;
+      for (const n of noms) {
+        html += `<option value="${n}">${formatShortNom(n)} (${map[n]} ready)</option>`;
+      }
+      sel.innerHTML = html;
+      if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+    }
+
+    function getExportBatch() {
+      const nom = document.getElementById('exportNominal').value;
+      const qtyVal = document.getElementById('exportQtyCustom').value;
+      const ready = vouchers.filter(v => v.status === 'ready' && (nom === 'all' || String(v.nominal) === String(nom)));
+      const limit = qtyVal === '' ? ready.length : Math.max(1, parseInt(qtyVal, 10) || ready.length);
+      return ready.slice(0, limit);
+    }
+
+    function formatBatch(items, mode) {
+      if (mode === 'links') return items.map(v => v.link).join('\n');
+      if (mode === 'user_link') return items.map(v => `${v.user} | ${v.link}`).join('\n');
+      return '🎫 DEALS — KODE / LINK\n\n' + items.map(v =>
+        `👤 ${v.user}\n\n• ${v.title}\n\n  Link: ${v.link}`
+      ).join('\n\n');
+    }
+
+    function renderExport() {
+      populateExportNominals();
+      const items = getExportBatch();
+      const mode = document.getElementById('exportFormat').value;
+      const totalVal = items.reduce((s, v) => s + (v.nominal || 0), 0);
+      document.getElementById('exportSummary').textContent = `${items.length} voucher dipilih (${formatRupiah(totalVal)})`;
+      document.getElementById('exportOutput').value = formatBatch(items, mode);
+    }
+
+    function maybeMarkExportedUsed(items) {
+      if (!document.getElementById('autoMarkUsed').checked || !items.length) return;
+      const ids = new Set(items.map(v => v.id));
+      for (const v of vouchers) {
+        if (ids.has(v.id)) {
+          v.status = 'used';
+          v.usedAt = Date.now();
+        }
+      }
+      saveData();
+      renderExport();
+    }
+
+    function buildClickableHtml(items) {
+      const rows = items.map((v, i) => `
+        <div class="item">
+          <label><input type="checkbox" /> <b>#${i + 1}</b> [${escapeHtml(formatShortNom(v.nominal))}] 👤 ${escapeHtml(v.user)}</label>
+          <div class="sub">${escapeHtml(v.title)}</div>
+          <a href="${escapeHtml(v.link)}" target="_blank" rel="noopener">${escapeHtml(v.link)}</a>
+        </div>`).join('');
+
+      return [
+        '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">',
+        '<title>Arsip Voucher Indomaret</title>',
+        '<style>body{font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;max-width:680px;margin:0 auto;padding:16px}',
+        'h2{margin:0 0 12px}.item{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:12px;margin-bottom:10px}',
+        '.sub{font-size:12px;color:#94a3b8;margin:4px 0 6px}a{color:#60a5fa;word-break:break-all;font-size:13px}',
+        'input:checked + b{text-decoration:line-through;color:#94a3b8}</style></head><body>',
+        `<h2>🎫 Arsip Voucher (${items.length} pcs)</h2>`,
+        rows,
+        '</body></html>'
+      ].join('');
+    }
+
+    // Navigation
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.onclick = () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + tab));
+        haptic('light');
+        if (tab === 'vault') renderVault();
+        if (tab === 'export') renderExport();
+      };
+    });
+
+    // Vault events
+    document.querySelectorAll('#statusFilter button').forEach(btn => {
+      btn.onclick = () => {
+        filterStatus = btn.dataset.status;
+        document.querySelectorAll('#statusFilter button').forEach(b => b.classList.toggle('active', b === btn));
+        haptic('light');
+        renderVault();
+      };
+    });
+    document.getElementById('searchInput').oninput = e => {
+      searchQuery = e.target.value;
+      renderVault();
+    };
+
+    // Input events
+    document.getElementById('bulkInput').oninput = updateParsePreview;
+    document.getElementById('btnClearInput').onclick = () => {
+      document.getElementById('bulkInput').value = '';
+      updateParsePreview();
+    };
+    document.getElementById('btnSample').onclick = () => {
+      document.getElementById('bulkInput').value = `🎫 DEALS — KODE / LINK
+
+👤 76ghpxibzz
+
+• Indomaret Rp25RB Voucher
+
+  Link: https://e.uvcr.me/59e04e7b6aa05e42b20147eca00ffcf4/fae5ef9c881828196a83d4cd2fefb6a5
+
+👤 25vmos0y4t
+
+• Indomaret Rp50RB Voucher
+
+  Link: https://e.uvcr.me/04b3e9143d595ec38b1344048f32a1b1/abdf81acc0d031fd291b1698fe7167eb
+
+👤 lln31605vy
+
+• Indomaret Rp100RB Voucher
+
+  Link: https://e.uvcr.me/e4ae038eb0a45dd099a3afc4da8ada1c/edb8b63fa9cafd3aa8a77884699c95bd`;
+      updateParsePreview();
+    };
+    document.getElementById('btnSaveParsed').onclick = () => {
+      if (!parsedCache.length) {
+        showToast('Tidak ada voucher baru untuk disimpan');
+        return;
+      }
+      const added = parsedCache.length;
+      vouchers = [...parsedCache, ...vouchers];
+      saveData();
+      document.getElementById('bulkInput').value = '';
+      updateParsePreview();
+      haptic('success');
+      showToast(`${added} voucher masuk ke tabungan!`);
+      document.querySelector('.nav-btn[data-tab="vault"]').click();
+    };
+
+    // Export events
+    document.getElementById('exportNominal').onchange = renderExport;
+    document.getElementById('exportFormat').onchange = renderExport;
+    document.getElementById('exportQtyCustom').oninput = () => {
+      document.querySelectorAll('.qty-pill').forEach(p => p.classList.remove('active'));
+      renderExport();
+    };
+    document.querySelectorAll('.qty-pill').forEach(pill => {
+      pill.onclick = () => {
+        document.querySelectorAll('.qty-pill').forEach(p => p.classList.toggle('active', p === pill));
+        const val = pill.dataset.qty;
+        document.getElementById('exportQtyCustom').value = val === 'all' ? '' : val;
+        renderExport();
+      };
+    });
+
+    document.getElementById('btnCopyExport').onclick = async () => {
+      const items = getExportBatch();
+      if (!items.length) return showToast('Tidak ada voucher ready');
+      const text = document.getElementById('exportOutput').value;
+      await copyText(text);
+      maybeMarkExportedUsed(items);
+      haptic('success');
+      showToast(`${items.length} voucher dicopy`);
+    };
+
+    document.getElementById('btnDlTxt').onclick = () => {
+      const items = getExportBatch();
+      if (!items.length) return showToast('Tidak ada voucher ready');
+      const text = document.getElementById('exportOutput').value;
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadFile(`voucher_indomaret_${stamp}_${items.length}pcs.txt`, text, 'text/plain;charset=utf-8');
+      maybeMarkExportedUsed(items);
+      haptic('success');
+      showToast('File .TXT diunduh');
+    };
+
+    document.getElementById('btnDlHtml').onclick = () => {
+      const items = getExportBatch();
+      if (!items.length) return showToast('Tidak ada voucher ready');
+      const html = buildClickableHtml(items);
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadFile(`voucher_indomaret_${stamp}_${items.length}pcs.html`, html, 'text/html;charset=utf-8');
+      maybeMarkExportedUsed(items);
+      haptic('success');
+      showToast('Arsip .HTML diunduh');
+    };
+
+    // Backup & Maintenance
+    document.getElementById('btnBackupJson').onclick = () => {
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadFile(`backup_voucher_vault_${stamp}.json`, JSON.stringify(vouchers, null, 2), 'application/json');
+      showToast('Backup JSON diunduh');
+    };
+
+    document.getElementById('btnRestoreJson').onclick = () => document.getElementById('restoreFile').click();
+    document.getElementById('restoreFile').onchange = e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+          if (!Array.isArray(imported)) throw new Error();
+          const existing = new Set(vouchers.map(v => v.link));
+          let added = 0;
+          for (const item of imported) {
+            if (item && item.link && !existing.has(item.link)) {
+              vouchers.push(item);
+              existing.add(item.link);
+              added++;
+            }
+          }
+          saveData();
+          renderExport();
+          showToast(`Restore sukses (+${added} voucher baru)`);
+        } catch {
+          showToast('File JSON tidak valid');
+        }
+        e.target.value = '';
+      };
+      reader.readAsText(file);
+    };
+
+    document.getElementById('btnPurgeUsed').onclick = () => {
+      const usedCount = vouchers.filter(v => v.status === 'used').length;
+      if (!usedCount) return showToast('Tidak ada voucher terpakai');
+      if (!confirm(`Hapus permanen ${usedCount} voucher yang sudah terpakai?`)) return;
+      vouchers = vouchers.filter(v => v.status !== 'used');
+      saveData();
+      renderExport();
+      showToast(`${usedCount} voucher terpakai dihapus`);
+    };
+
+    document.getElementById('btnResetAll').onclick = () => {
+      if (!vouchers.length) return showToast('Tabungan sudah kosong');
+      if (!confirm('Reset SEMUA data voucher? Pastikan sudah Backup JSON dulu.')) return;
+      vouchers = [];
+      saveData();
+      renderExport();
+      showToast('Semua data direset');
+    };
+
+    // Init
+    renderVault();
+  </script>
+</body>
+</html>
