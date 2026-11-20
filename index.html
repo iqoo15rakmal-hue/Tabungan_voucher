@@ -43,7 +43,6 @@
       padding: 16px;
     }
 
-    /* Header */
     .header {
       display: flex;
       justify-content: space-between;
@@ -77,7 +76,6 @@
       border: 1px solid rgba(59, 130, 246, 0.25);
     }
 
-    /* Summary Card */
     .hero-card {
       background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 60%, #0f172a 100%);
       border: 1px solid rgba(96, 165, 250, 0.25);
@@ -128,12 +126,18 @@
       font-size: 12px;
     }
     .progress-bar-wrap.show { display: block; }
+    .progress-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
     .progress-track {
       height: 6px;
       background: #0f172a;
       border-radius: 999px;
       overflow: hidden;
-      margin-top: 6px;
+      margin-top: 7px;
     }
     .progress-fill {
       height: 100%;
@@ -142,7 +146,6 @@
       transition: width 0.2s ease;
     }
 
-    /* Nominal Chips */
     .chips-scroll {
       display: flex;
       gap: 8px;
@@ -184,7 +187,6 @@
       color: #fff;
     }
 
-    /* Controls */
     .controls {
       display: flex;
       flex-direction: column;
@@ -236,7 +238,6 @@
       line-height: 1.5;
     }
 
-    /* Voucher Card */
     .voucher-list { display: flex; flex-direction: column; gap: 10px; }
     .voucher-card {
       background: var(--card);
@@ -298,7 +299,6 @@
       gap: 6px;
     }
 
-    /* Validation Result List */
     .val-list {
       display: flex;
       flex-direction: column;
@@ -331,7 +331,6 @@
       white-space: nowrap;
     }
 
-    /* Buttons */
     .btn {
       border: 1px solid var(--border);
       background: #273449;
@@ -354,9 +353,9 @@
     .btn-green-solid { background: var(--green); border-color: var(--green); color: #052e16; font-weight: 700; }
     .btn-amber { background: var(--amber-bg); border-color: rgba(245, 158, 11, 0.35); color: #fbbf24; }
     .btn-red { background: var(--red-bg); border-color: rgba(239, 68, 68, 0.35); color: #f87171; }
+    .btn-sm { padding: 4px 9px; font-size: 11px; border-radius: 8px; }
     .btn-full { width: 100%; padding: 12px; font-size: 13px; }
 
-    /* Cards & Sections */
     .panel {
       background: var(--card);
       border: 1px solid var(--border);
@@ -430,11 +429,9 @@
     }
     .empty .emoji { font-size: 32px; margin-bottom: 8px; }
 
-    /* Views */
     .view { display: none; }
     .view.active { display: block; }
 
-    /* Bottom Nav */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -467,7 +464,6 @@
     .nav-btn .ico { font-size: 18px; }
     .nav-btn.active { color: #60a5fa; background: rgba(59, 130, 246, 0.12); }
 
-    /* Toast */
     .toast {
       position: fixed;
       bottom: 82px;
@@ -534,7 +530,10 @@
       </div>
 
       <div class="progress-bar-wrap" id="refreshProgress">
-        <div id="refreshProgressText">Memeriksa voucher...</div>
+        <div class="progress-head">
+          <div id="refreshProgressText">Memeriksa voucher...</div>
+          <button class="btn btn-red btn-sm" id="btnStopRefresh">⏹ Stop</button>
+        </div>
         <div class="progress-track"><div class="progress-fill" id="refreshProgressFill"></div></div>
       </div>
 
@@ -574,7 +573,10 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
         </div>
 
         <div class="progress-bar-wrap" id="valProgress">
-          <div id="valProgressText">Memvalidasi...</div>
+          <div class="progress-head">
+            <div id="valProgressText">Memvalidasi...</div>
+            <button class="btn btn-red btn-sm" id="btnStopVal">⏹ Stop</button>
+          </div>
           <div class="progress-track"><div class="progress-fill" id="valProgressFill"></div></div>
         </div>
 
@@ -659,7 +661,9 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
   <script>
     const STORAGE_KEY = 'voucher_vault_indomaret_v1';
     const WORKER_URL = 'https://voucher-bot.iqoo15rakmal.workers.dev';
-    const CHECK_BATCH_SIZE = 8;
+    const CHECK_BATCH_SIZE = 3;
+    const BATCH_DELAY_MS = 300;
+    const FETCH_TIMEOUT_MS = 25000;
     const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
     if (tg && tg.initData) {
@@ -689,6 +693,8 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
     let lastDeleted = null;
     let toastTimer = null;
     let isBusy = false;
+    let stopRequested = false;
+    let activeAbortController = null;
 
     function loadData() {
       try {
@@ -703,7 +709,10 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       localStorage.setItem(STORAGE_KEY, JSON.stringify(vouchers));
     }
 
-    // Normalisasi Link untuk deteksi anti-duplikat akurat
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     function normalizeLink(raw) {
       const cleaned = String(raw || '').trim().replace(/[.,;!?)\]]+$/, '');
       try {
@@ -772,7 +781,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       }
       toast.classList.add('show');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 4200);
     }
 
     async function copyText(text) {
@@ -812,27 +821,79 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    // API Helper: cek batch link ke Worker
-    async function checkLinksViaWorker(links, onProgress) {
-      const allResults = [];
-      for (let i = 0; i < links.length; i += CHECK_BATCH_SIZE) {
-        const chunk = links.slice(i, i + CHECK_BATCH_SIZE);
+    async function fetchWorkerChunk(chunk) {
+      const controller = new AbortController();
+      activeAbortController = controller;
+      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      try {
         const res = await fetch(WORKER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'check', links: chunk }),
+          signal: controller.signal,
         });
         const data = await res.json();
         if (!res.ok || !data.ok || !Array.isArray(data.results)) {
-          throw new Error(data.error || 'Gagal cek link ke server');
+          throw new Error(data.error || 'Respons server tidak valid');
         }
-        allResults.push(...data.results);
-        if (onProgress) onProgress(Math.min(i + chunk.length, links.length), links.length);
+        return data.results;
+      } finally {
+        clearTimeout(timer);
+        if (activeAbortController === controller) activeAbortController = null;
       }
-      return allResults;
     }
 
-    // Pre-parse teks input (mendukung link polos maupun format DEALS)
+    // Cek batch kecil dengan timeout, auto-retry 1x, dan tombol Stop
+    async function checkLinksViaWorker(links, onProgress, onBatchResult) {
+      const allResults = [];
+      stopRequested = false;
+
+      for (let i = 0; i < links.length; i += CHECK_BATCH_SIZE) {
+        if (stopRequested) break;
+        const chunk = links.slice(i, i + CHECK_BATCH_SIZE);
+        let chunkResults = null;
+
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          if (stopRequested) break;
+          try {
+            chunkResults = await fetchWorkerChunk(chunk);
+            break;
+          } catch (err) {
+            if (stopRequested) break;
+            if (attempt === 1) {
+              await sleep(700);
+            } else {
+              const reason = err && err.name === 'AbortError'
+                ? 'Timeout (server lambat)'
+                : ('Gagal koneksi: ' + (err.message || 'error'));
+              chunkResults = chunk.map(link => ({ link, status: 'error', reason }));
+            }
+          }
+        }
+
+        if (stopRequested && !chunkResults) break;
+
+        allResults.push(...chunkResults);
+        if (onBatchResult) onBatchResult(chunkResults, i);
+        if (onProgress) onProgress(Math.min(i + chunk.length, links.length), links.length);
+
+        if (i + CHECK_BATCH_SIZE < links.length && !stopRequested) {
+          await sleep(BATCH_DELAY_MS);
+        }
+      }
+
+      return { results: allResults, stopped: stopRequested };
+    }
+
+    function requestStopCheck() {
+      stopRequested = true;
+      if (activeAbortController) {
+        try { activeAbortController.abort(); } catch (_) {}
+      }
+      showToast('Menghentikan proses...');
+    }
+
+    // Pre-parse teks input
     function preParseInput(rawText) {
       const lines = rawText.split(/\r?\n/);
       const existingNorms = new Set(vouchers.map(v => normalizeLink(v.link)));
@@ -878,7 +939,6 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       const box = document.getElementById('parsePreview');
       const valBtn = document.getElementById('btnValidate');
 
-      // Reset hasil validasi lama tiap teks berubah
       validatedReadyItems = [];
       document.getElementById('validationSection').style.display = 'none';
       document.getElementById('btnSaveValidated').disabled = true;
@@ -941,12 +1001,11 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
 
       try {
         const linksToCheck = preParsedItems.map(x => x.link);
-        const results = await checkLinksViaWorker(linksToCheck, (done, total) => {
+        const { results, stopped } = await checkLinksViaWorker(linksToCheck, (done, total) => {
           progText.textContent = `Memvalidasi ${done} / ${total} link...`;
           progFill.style.width = Math.round((done / total) * 100) + '%';
         });
 
-        // Anti-duplikat lapis ID Voucher (SV-IDD...)
         const existingIds = new Set(vouchers.map(v => v.idVoucher).filter(Boolean));
         const seenIdsInBatch = new Set();
 
@@ -957,6 +1016,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
 
         results.forEach((r, idx) => {
           const meta = preParsedItems[idx];
+          if (!meta || !r) return;
           if (r.idVoucher && (existingIds.has(r.idVoucher) || seenIdsInBatch.has(r.idVoucher))) {
             dupList.push({
               link: meta.link,
@@ -991,7 +1051,6 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
 
         validatedReadyItems = readyList;
 
-        // Ringkasan nominal yang valid
         const nomCount = {};
         let totalVal = 0;
         for (const v of readyList) {
@@ -1008,9 +1067,9 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
             <span class="badge badge-ready">✅ Valid Ready: ${readyList.length}</span>
             ${dupList.length ? `<span class="badge badge-dup">🟣 Duplikat: ${dupList.length}</span>` : ''}
             ${usedList.length ? `<span class="badge badge-used">⚠️ Terpakai: ${usedList.length}</span>` : ''}
-            ${invalidList.length ? `<span class="badge badge-invalid">❌ Invalid: ${invalidList.length}</span>` : ''}
+            ${invalidList.length ? `<span class="badge badge-invalid">❌ Invalid/Gagal: ${invalidList.length}</span>` : ''}
           </div>
-          <div>Total siap simpan: <b>${formatRupiah(totalVal)}</b></div>
+          <div>${stopped ? '<span style="color:var(--amber)">Dihentikan manual • </span>' : ''}Total siap simpan: <b>${formatRupiah(totalVal)}</b></div>
           ${nomBadges ? `<div class="preview-grid">${nomBadges}</div>` : ''}
         `;
 
@@ -1053,7 +1112,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
           cardsHtml.push(`
             <div class="val-item">
               <div class="val-item-top">
-                <span class="badge badge-invalid">INVALID</span>
+                <span class="badge badge-invalid">${inv.status === 'error' ? 'TIMEOUT' : 'INVALID'}</span>
                 <span style="color:#f87171; font-size:10.5px;">${escapeHtml(inv.reason || 'Link tidak valid')}</span>
               </div>
               <div class="val-item-link">${escapeHtml(inv.link)}</div>
@@ -1073,11 +1132,11 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
         isBusy = false;
         btn.disabled = false;
         btn.textContent = `🔍 Validasi Link (${preParsedItems.length})`;
-        setTimeout(() => progWrap.classList.remove('show'), 600);
+        setTimeout(() => progWrap.classList.remove('show'), 500);
       }
     }
 
-    // Refresh 1 voucher atau semua voucher Ready
+    // Refresh 1 voucher atau semua voucher Ready (auto-save tiap batch)
     async function refreshVouchers(targetList, isSingle = false) {
       if (isBusy) return;
       if (!targetList.length) return showToast('Tidak ada voucher Ready untuk dicek');
@@ -1095,58 +1154,75 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
         progFill.style.width = '5%';
       }
 
+      let stillReady = 0;
+      let becameUsed = 0;
+      let invalidCount = 0;
+      let errorCount = 0;
+      let checkedTotal = 0;
+
       try {
         const links = targetList.map(v => v.link);
-        const results = await checkLinksViaWorker(links, (done, total) => {
-          if (!isSingle) {
-            progText.textContent = `Memeriksa ${done} / ${total} voucher...`;
-            progFill.style.width = Math.round((done / total) * 100) + '%';
+        const { results, stopped } = await checkLinksViaWorker(
+          links,
+          (done, total) => {
+            if (!isSingle) {
+              progText.textContent = `Memeriksa ${done} / ${total} voucher...`;
+              progFill.style.width = Math.round((done / total) * 100) + '%';
+            }
+          },
+          (batchResults, startIndex) => {
+            batchResults.forEach((r, offset) => {
+              const v = targetList[startIndex + offset];
+              if (!v || !r) return;
+              checkedTotal++;
+              v.lastCheckedAt = Date.now();
+
+              if (r.status === 'ready') {
+                v.status = 'ready';
+                v.invalid = false;
+                if (r.nominal) v.nominal = r.nominal;
+                if (r.title) v.title = r.title;
+                if (r.idVoucher) v.idVoucher = r.idVoucher;
+                if (r.expiredAt) v.expiredAt = r.expiredAt;
+                v.redeemedAt = null;
+                stillReady++;
+              } else if (r.status === 'used') {
+                v.status = 'used';
+                v.invalid = false;
+                if (r.nominal) v.nominal = r.nominal;
+                if (r.title) v.title = r.title;
+                if (r.idVoucher) v.idVoucher = r.idVoucher;
+                if (r.expiredAt) v.expiredAt = r.expiredAt;
+                v.redeemedAt = r.redeemedAt || r.reason || 'Sudah terpakai';
+                v.usedAt = v.usedAt || Date.now();
+                becameUsed++;
+              } else if (r.status === 'invalid') {
+                v.invalid = true;
+                invalidCount++;
+              } else {
+                errorCount++;
+              }
+            });
+            saveData();
+            renderVault();
           }
-        });
+        );
 
-        let stillReady = 0;
-        let becameUsed = 0;
-        let invalidCount = 0;
-
-        results.forEach((r, idx) => {
-          const v = targetList[idx];
-          v.lastCheckedAt = Date.now();
-          if (r.status === 'ready') {
-            v.status = 'ready';
-            v.invalid = false;
-            if (r.nominal) v.nominal = r.nominal;
-            if (r.title) v.title = r.title;
-            if (r.idVoucher) v.idVoucher = r.idVoucher;
-            if (r.expiredAt) v.expiredAt = r.expiredAt;
-            v.redeemedAt = null;
-            stillReady++;
-          } else if (r.status === 'used') {
-            v.status = 'used';
-            v.invalid = false;
-            if (r.nominal) v.nominal = r.nominal;
-            if (r.title) v.title = r.title;
-            if (r.idVoucher) v.idVoucher = r.idVoucher;
-            if (r.expiredAt) v.expiredAt = r.expiredAt;
-            v.redeemedAt = r.redeemedAt || r.reason || 'Sudah terpakai';
-            v.usedAt = v.usedAt || Date.now();
-            becameUsed++;
-          } else if (r.status === 'invalid') {
-            v.invalid = true;
-            invalidCount++;
-          }
-        });
-
-        saveData();
-        renderVault();
-        haptic('success');
+        haptic(errorCount > 0 && stillReady === 0 && becameUsed === 0 ? 'error' : 'success');
 
         if (isSingle) {
           const r = results[0];
-          if (r.status === 'ready') showToast(`Ready • ${formatShortNom(r.nominal)}`);
+          if (!r) showToast('Dibatalkan');
+          else if (r.status === 'ready') showToast(`Ready • ${formatShortNom(r.nominal)}`);
           else if (r.status === 'used') showToast(`Sudah Terpakai • ${r.redeemedAt || r.rawStatus}`);
-          else showToast(r.reason || 'Link tidak valid');
+          else showToast(r.reason || 'Gagal cek link');
         } else {
-          showToast(`Selesai: ${stillReady} Ready, ${becameUsed} Terpakai${invalidCount ? `, ${invalidCount} Invalid` : ''}`);
+          const prefix = stopped ? `Stop (${checkedTotal}/${targetList.length}): ` : 'Selesai: ';
+          showToast(
+            `${prefix}${stillReady} Ready, ${becameUsed} Terpakai` +
+            `${invalidCount ? `, ${invalidCount} Invalid` : ''}` +
+            `${errorCount ? `, ${errorCount} Timeout` : ''}`
+          );
         }
       } catch (err) {
         haptic('error');
@@ -1154,7 +1230,8 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       } finally {
         isBusy = false;
         btnAll.disabled = false;
-        setTimeout(() => progWrap.classList.remove('show'), 700);
+        renderVault();
+        setTimeout(() => progWrap.classList.remove('show'), 600);
       }
     }
 
@@ -1264,6 +1341,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
             haptic('success');
             showToast('Link berhasil dicopy');
           } else if (act === 'refresh') {
+            if (isBusy) return showToast('Masih ada proses pengecekan berjalan');
             haptic('light');
             btn.textContent = '⏳';
             btn.disabled = true;
@@ -1371,6 +1449,8 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       });
       refreshVouchers(target, false);
     };
+    document.getElementById('btnStopRefresh').onclick = requestStopCheck;
+    document.getElementById('btnStopVal').onclick = requestStopCheck;
 
     document.querySelectorAll('#statusFilter button').forEach(btn => {
       btn.onclick = () => {
@@ -1397,7 +1477,6 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       if (!validatedReadyItems.length) {
         return showToast('Belum ada voucher valid untuk disimpan');
       }
-      // Double-check anti-duplikat terakhir saat klik simpan
       const existingNorms = new Set(vouchers.map(v => normalizeLink(v.link)));
       const existingIds = new Set(vouchers.map(v => v.idVoucher).filter(Boolean));
       const finalAdd = validatedReadyItems.filter(v => {
