@@ -254,6 +254,7 @@
       transition: transform 0.08s ease, background 0.15s ease;
     }
     .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
     .btn-green { background: var(--green-bg); border-color: rgba(16, 185, 129, 0.35); color: #34d399; }
     .btn-amber { background: var(--amber-bg); border-color: rgba(245, 158, 11, 0.35); color: #fbbf24; }
@@ -279,9 +280,7 @@
       margin-bottom: 12px;
     }
 
-    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 
     .preview-box {
       background: rgba(15, 23, 42, 0.7);
@@ -452,7 +451,7 @@
     <section id="view-input" class="view">
       <div class="panel">
         <div class="panel-title">Input Massal Voucher</div>
-        <div class="panel-sub">Tempel format <code>DEALS — KODE / LINK</code>. Nominal (25RB / 50RB / 100RB / lainnya) otomatis terdeteksi & duplikat dilewati.</div>
+        <div class="panel-sub">Tempel format <code>DEALS — KODE / LINK</code>. Nominal (25RB / 50RB / 100RB / lainnya) otomatis terdeteksi &amp; duplikat dilewati.</div>
 
         <textarea id="bulkInput" placeholder="Tempel teks voucher di sini...
 
@@ -477,7 +476,7 @@ Contoh:
     <section id="view-export" class="view">
       <div class="panel">
         <div class="panel-title">Export / Tarik Voucher</div>
-        <div class="panel-sub">Ambil voucher yang masih <b>Ready</b> berdasarkan nominal dan jumlah batch.</div>
+        <div class="panel-sub">Ambil voucher yang masih <b>Ready</b>. Tombol <b>Download TXT</b> otomatis mengirim file <code>hasilvoucher.txt</code> ke chat Bot Telegram.</div>
 
         <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Filter Nominal</label>
         <select id="exportNominal" style="margin-bottom: 12px;"></select>
@@ -491,8 +490,9 @@ Contoh:
         </div>
         <input type="number" id="exportQtyCustom" class="input" min="1" value="30" placeholder="Atau ketik jumlah custom..." style="margin-bottom:12px;" />
 
-        <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Format Output</label>
+        <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Format Preview / Copy</label>
         <select id="exportFormat">
+          <option value="numbered">Link Bernomor (1., 2., dst)</option>
           <option value="links">Link Saja (1 link per baris)</option>
           <option value="deals">Format Deals (👤 User + Nominal + Link)</option>
           <option value="user_link">Username | Link</option>
@@ -500,21 +500,20 @@ Contoh:
 
         <label class="checkbox-row">
           <input type="checkbox" id="autoMarkUsed" />
-          <span>Otomatis tandai <b>Terpakai</b> setelah Copy / Download</span>
+          <span>Otomatis tandai <b>Terpakai</b> setelah Copy / Download TXT</span>
         </label>
 
         <div style="font-size:12px; color:var(--muted); margin-bottom:6px;" id="exportSummary">0 voucher siap ditarik</div>
         <textarea id="exportOutput" readonly style="min-height:150px; margin-bottom:10px;"></textarea>
 
-        <div class="grid-3">
-          <button class="btn btn-primary" id="btnCopyExport">Copy</button>
-          <button class="btn" id="btnDlTxt">Save .TXT</button>
-          <button class="btn" id="btnDlHtml">Save .HTML</button>
+        <div class="grid-2">
+          <button class="btn" id="btnCopyExport">Copy Teks</button>
+          <button class="btn btn-primary" id="btnDlTxt">Download TXT</button>
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-title">Backup & Kelola Data</div>
+        <div class="panel-title">Backup &amp; Kelola Data</div>
         <div class="panel-sub">Data tersimpan lokal di perangkat ini. Backup rutin ke JSON biar aman saat pindah HP / clear cache.</div>
         <div class="grid-2" style="margin-bottom: 8px;">
           <button class="btn" id="btnBackupJson">Backup JSON</button>
@@ -544,6 +543,7 @@ Contoh:
 
   <script>
     const STORAGE_KEY = 'voucher_vault_indomaret_v1';
+    const WORKER_URL = 'https://voucher-bot.iqoo15rakmal.workers.dev';
     const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
     if (tg && tg.initData) {
@@ -556,6 +556,7 @@ Contoh:
       try {
         if (tg && tg.HapticFeedback) {
           if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+          else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
           else tg.HapticFeedback.impactOccurred(type);
         }
       } catch (_) {}
@@ -595,6 +596,20 @@ Contoh:
       return 'Rp' + num.toLocaleString('id-ID');
     }
 
+    function getProductLabel(items) {
+      const noms = [...new Set(items.map(v => v.nominal).filter(n => n > 0))].sort((a, b) => a - b);
+      if (noms.length === 1) {
+        const n = noms[0];
+        const tag = n >= 1000 && n % 1000 === 0 ? `${n / 1000}K` : `${n}`;
+        return `VOC_IDM (${tag})`;
+      }
+      if (noms.length > 1) {
+        const tags = noms.map(n => (n >= 1000 && n % 1000 === 0 ? `${n / 1000}K` : `${n}`)).join('/');
+        return `VOC_IDM (${tags})`;
+      }
+      return 'VOC_IDM';
+    }
+
     function escapeHtml(str) {
       return String(str || '')
         .replace(/&/g, '&amp;')
@@ -630,7 +645,7 @@ Contoh:
       }
       toast.classList.add('show');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.remove('show'), 3600);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 3800);
     }
 
     async function copyText(text) {
@@ -767,13 +782,11 @@ Contoh:
       document.getElementById('statUsed').textContent = usedItems.length;
       document.getElementById('statTotal').textContent = vouchers.length;
 
-      // Nominal Chips (hitung dari status yg sedang aktif biar informatif)
       const baseForChips = filterStatus === 'all' ? vouchers : vouchers.filter(v => v.status === filterStatus);
       const nomMap = {};
       for (const v of baseForChips) {
         nomMap[v.nominal] = (nomMap[v.nominal] || 0) + 1;
       }
-      // Pastikan nominal aktif tetap tampil meski 0
       const allNoms = Array.from(new Set(vouchers.map(v => v.nominal))).sort((a, b) => a - b);
 
       const chipsEl = document.getElementById('nominalChips');
@@ -793,7 +806,6 @@ Contoh:
         };
       });
 
-      // Filter List
       const q = searchQuery.trim().toLowerCase();
       const filtered = vouchers.filter(v => {
         if (filterStatus !== 'all' && v.status !== filterStatus) return false;
@@ -905,6 +917,7 @@ Contoh:
     }
 
     function formatBatch(items, mode) {
+      if (mode === 'numbered') return items.map((v, i) => `${i + 1}. ${v.link}`).join('\n');
       if (mode === 'links') return items.map(v => v.link).join('\n');
       if (mode === 'user_link') return items.map(v => `${v.user} | ${v.link}`).join('\n');
       return '🎫 DEALS — KODE / LINK\n\n' + items.map(v =>
@@ -917,7 +930,7 @@ Contoh:
       const items = getExportBatch();
       const mode = document.getElementById('exportFormat').value;
       const totalVal = items.reduce((s, v) => s + (v.nominal || 0), 0);
-      document.getElementById('exportSummary').textContent = `${items.length} voucher dipilih (${formatRupiah(totalVal)})`;
+      document.getElementById('exportSummary').textContent = `${items.length} voucher dipilih (${formatRupiah(totalVal)}) • ${getProductLabel(items)}`;
       document.getElementById('exportOutput').value = formatBatch(items, mode);
     }
 
@@ -932,27 +945,6 @@ Contoh:
       }
       saveData();
       renderExport();
-    }
-
-    function buildClickableHtml(items) {
-      const rows = items.map((v, i) => `
-        <div class="item">
-          <label><input type="checkbox" /> <b>#${i + 1}</b> [${escapeHtml(formatShortNom(v.nominal))}] 👤 ${escapeHtml(v.user)}</label>
-          <div class="sub">${escapeHtml(v.title)}</div>
-          <a href="${escapeHtml(v.link)}" target="_blank" rel="noopener">${escapeHtml(v.link)}</a>
-        </div>`).join('');
-
-      return [
-        '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">',
-        '<title>Arsip Voucher Indomaret</title>',
-        '<style>body{font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;max-width:680px;margin:0 auto;padding:16px}',
-        'h2{margin:0 0 12px}.item{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:12px;margin-bottom:10px}',
-        '.sub{font-size:12px;color:#94a3b8;margin:4px 0 6px}a{color:#60a5fa;word-break:break-all;font-size:13px}',
-        'input:checked + b{text-decoration:line-through;color:#94a3b8}</style></head><body>',
-        `<h2>🎫 Arsip Voucher (${items.length} pcs)</h2>`,
-        rows,
-        '</body></html>'
-      ].join('');
     }
 
     // Navigation
@@ -1050,26 +1042,49 @@ Contoh:
       showToast(`${items.length} voucher dicopy`);
     };
 
-    document.getElementById('btnDlTxt').onclick = () => {
+    document.getElementById('btnDlTxt').onclick = async () => {
       const items = getExportBatch();
       if (!items.length) return showToast('Tidak ada voucher ready');
-      const text = document.getElementById('exportOutput').value;
-      const stamp = new Date().toISOString().slice(0, 10);
-      downloadFile(`voucher_indomaret_${stamp}_${items.length}pcs.txt`, text, 'text/plain;charset=utf-8');
-      maybeMarkExportedUsed(items);
-      haptic('success');
-      showToast('File .TXT diunduh');
-    };
 
-    document.getElementById('btnDlHtml').onclick = () => {
-      const items = getExportBatch();
-      if (!items.length) return showToast('Tidak ada voucher ready');
-      const html = buildClickableHtml(items);
-      const stamp = new Date().toISOString().slice(0, 10);
-      downloadFile(`voucher_indomaret_${stamp}_${items.length}pcs.html`, html, 'text/html;charset=utf-8');
-      maybeMarkExportedUsed(items);
-      haptic('success');
-      showToast('Arsip .HTML diunduh');
+      const btn = document.getElementById('btnDlTxt');
+      const links = items.map(v => v.link);
+      const productLabel = getProductLabel(items);
+
+      if (tg && tg.initData) {
+        const origText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Mengirim...';
+        try {
+          const res = await fetch(WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              initData: tg.initData,
+              productLabel,
+              links
+            })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error(data.error || 'Gagal mengirim file');
+          }
+          maybeMarkExportedUsed(items);
+          haptic('success');
+          showToast('hasilvoucher.txt terkirim ke chat Bot!');
+        } catch (err) {
+          haptic('error');
+          showToast('Gagal: ' + (err.message || 'Cek koneksi/token'));
+        } finally {
+          btn.disabled = false;
+          btn.textContent = origText;
+        }
+      } else {
+        const txtContent = links.map((link, i) => `${i + 1}. ${link}`).join('\n');
+        downloadFile('hasilvoucher.txt', txtContent, 'text/plain;charset=utf-8');
+        maybeMarkExportedUsed(items);
+        haptic('success');
+        showToast('hasilvoucher.txt diunduh');
+      }
     };
 
     // Backup & Maintenance
