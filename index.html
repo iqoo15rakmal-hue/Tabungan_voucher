@@ -661,9 +661,9 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
   <script>
     const STORAGE_KEY = 'voucher_vault_indomaret_v1';
     const WORKER_URL = 'https://voucher-bot.iqoo15rakmal.workers.dev';
-    const CHECK_BATCH_SIZE = 3;
-    const BATCH_DELAY_MS = 300;
-    const FETCH_TIMEOUT_MS = 25000;
+    const CHECK_BATCH_SIZE = 5;
+    const CHECK_CONCURRENCY = 2; // 2 batch paralel = 10 link sekaligus
+    const FETCH_TIMEOUT_MS = 20000;
     const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
     if (tg && tg.initData) {
@@ -694,7 +694,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
     let toastTimer = null;
     let isBusy = false;
     let stopRequested = false;
-    let activeAbortController = null;
+    const activeControllers = new Set();
 
     function loadData() {
       try {
@@ -823,7 +823,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
 
     async function fetchWorkerChunk(chunk) {
       const controller = new AbortController();
-      activeAbortController = controller;
+      activeControllers.add(controller);
       const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
       try {
         const res = await fetch(WORKER_URL, {
@@ -839,57 +839,69 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
         return data.results;
       } finally {
         clearTimeout(timer);
-        if (activeAbortController === controller) activeAbortController = null;
+        activeControllers.delete(controller);
       }
     }
 
-    // Cek batch kecil dengan timeout, auto-retry 1x, dan tombol Stop
+    // Cek paralel 2 batch sekaligus dengan timeout, auto-retry 1x, dan tombol Stop
     async function checkLinksViaWorker(links, onProgress, onBatchResult) {
-      const allResults = [];
+      const allResults = new Array(links.length);
       stopRequested = false;
+      let doneCount = 0;
 
+      const chunks = [];
       for (let i = 0; i < links.length; i += CHECK_BATCH_SIZE) {
-        if (stopRequested) break;
-        const chunk = links.slice(i, i + CHECK_BATCH_SIZE);
-        let chunkResults = null;
+        chunks.push({ startIndex: i, items: links.slice(i, i + CHECK_BATCH_SIZE) });
+      }
 
-        for (let attempt = 1; attempt <= 2; attempt++) {
-          if (stopRequested) break;
-          try {
-            chunkResults = await fetchWorkerChunk(chunk);
-            break;
-          } catch (err) {
+      let cursor = 0;
+      async function runWorker() {
+        while (cursor < chunks.length && !stopRequested) {
+          const { startIndex, items } = chunks[cursor++];
+          let chunkResults = null;
+
+          for (let attempt = 1; attempt <= 2; attempt++) {
             if (stopRequested) break;
-            if (attempt === 1) {
-              await sleep(700);
-            } else {
-              const reason = err && err.name === 'AbortError'
-                ? 'Timeout (server lambat)'
-                : ('Gagal koneksi: ' + (err.message || 'error'));
-              chunkResults = chunk.map(link => ({ link, status: 'error', reason }));
+            try {
+              chunkResults = await fetchWorkerChunk(items);
+              break;
+            } catch (err) {
+              if (stopRequested) break;
+              if (attempt === 1) {
+                await sleep(400);
+              } else {
+                const reason = err && err.name === 'AbortError'
+                  ? 'Timeout (server lambat)'
+                  : ('Gagal koneksi: ' + (err.message || 'error'));
+                chunkResults = items.map(link => ({ link, status: 'error', reason }));
+              }
             }
           }
-        }
 
-        if (stopRequested && !chunkResults) break;
+          if (!chunkResults) break;
 
-        allResults.push(...chunkResults);
-        if (onBatchResult) onBatchResult(chunkResults, i);
-        if (onProgress) onProgress(Math.min(i + chunk.length, links.length), links.length);
+          chunkResults.forEach((r, offset) => {
+            allResults[startIndex + offset] = r;
+          });
+          doneCount += chunkResults.length;
 
-        if (i + CHECK_BATCH_SIZE < links.length && !stopRequested) {
-          await sleep(BATCH_DELAY_MS);
+          if (onBatchResult) onBatchResult(chunkResults, startIndex);
+          if (onProgress) onProgress(Math.min(doneCount, links.length), links.length);
         }
       }
+
+      const poolSize = Math.min(CHECK_CONCURRENCY, chunks.length);
+      await Promise.all(Array.from({ length: poolSize }, () => runWorker()));
 
       return { results: allResults, stopped: stopRequested };
     }
 
     function requestStopCheck() {
       stopRequested = true;
-      if (activeAbortController) {
-        try { activeAbortController.abort(); } catch (_) {}
+      for (const ctrl of activeControllers) {
+        try { ctrl.abort(); } catch (_) {}
       }
+      activeControllers.clear();
       showToast('Menghentikan proses...');
     }
 
