@@ -143,7 +143,7 @@
       height: 100%;
       background: linear-gradient(90deg, #3b82f6, #10b981);
       width: 0%;
-      transition: width 0.2s ease;
+      transition: width 0.15s ease;
     }
 
     .chips-scroll {
@@ -231,7 +231,7 @@
       border-color: var(--primary);
     }
     textarea {
-      min-height: 175px;
+      min-height: 165px;
       resize: vertical;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 12px;
@@ -337,7 +337,7 @@
       color: var(--text);
       font-size: 12px;
       font-weight: 600;
-      padding: 9px 10px;
+      padding: 10px;
       border-radius: 10px;
       cursor: pointer;
       display: inline-flex;
@@ -555,7 +555,7 @@
     <section id="view-input" class="view">
       <div class="panel">
         <div class="panel-title">Input &amp; Validasi Link Voucher</div>
-        <div class="panel-sub">Cukup tempel <b>link polos</b> <code>https://e.uvcr.me/...</code> atau format <code>DEALS</code>. Sistem akan mengecek nominal asli, status aktif/terpakai, dan menyaring link/ID dobel sebelum disimpan.</div>
+        <div class="panel-sub">Pakai <b>⚡ Simpan Cepat</b> untuk langsung simpan stok baru secara instan, atau <b>🔍 Validasi Link</b> untuk cek status aktif/terpakai dari server.</div>
 
         <textarea id="bulkInput" placeholder="Tempel 1 atau banyak link e.uvcr.me di sini...
 
@@ -563,9 +563,23 @@ Contoh link polos:
 https://e.uvcr.me/xxxx/yyyy
 https://e.uvcr.me/aaaa/bbbb"></textarea>
 
-        <div class="preview-box" id="parsePreview">
-          Tempel link di atas, lalu tekan <b>Validasi Link</b> untuk cek status &amp; nominal otomatis.
+        <div style="margin-top: 10px;">
+          <label style="font-size:11.5px; color:var(--muted); display:block; margin-bottom:5px;">Nominal Default (khusus Simpan Cepat jika link polos):</label>
+          <select id="fastNominal">
+            <option value="0">Auto-deteksi teks / Lainnya</option>
+            <option value="10000">Rp 10.000 (10RB)</option>
+            <option value="25000" selected>Rp 25.000 (25RB)</option>
+            <option value="50000">Rp 50.000 (50RB)</option>
+            <option value="100000">Rp 100.000 (100RB)</option>
+            <option value="200000">Rp 200.000 (200RB)</option>
+          </select>
         </div>
+
+        <div class="preview-box" id="parsePreview">
+          Tempel link di atas, lalu pilih <b>⚡ Simpan Cepat</b> atau <b>🔍 Validasi Link</b>.
+        </div>
+
+        <button class="btn btn-green-solid btn-full" id="btnFastSave" style="margin-bottom: 8px;">⚡ Simpan Cepat (0)</button>
 
         <div class="grid-2" style="margin-bottom: 8px;">
           <button class="btn" id="btnClearInput">Bersihkan</button>
@@ -662,8 +676,8 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
     const STORAGE_KEY = 'voucher_vault_indomaret_v1';
     const WORKER_URL = 'https://voucher-bot.iqoo15rakmal.workers.dev';
     const CHECK_BATCH_SIZE = 1;
-    const CHECK_CONCURRENCY = 5; // 5 link jalan bareng, progres langsung gerak tiap 1 link selesai
-    const FETCH_TIMEOUT_MS = 12000;
+    const CHECK_CONCURRENCY = 8; // 8 link jalan paralel sekaligus, progres langsung gerak 1 per 1
+    const FETCH_TIMEOUT_MS = 11000;
     const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
     if (tg && tg.initData) {
@@ -723,6 +737,14 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       } catch {
         return cleaned.replace(/\/+$/, '').toLowerCase();
       }
+    }
+
+    function detectNominalFromText(text) {
+      const mRb = text.match(/(?:rp\.?\s*)?(\d+)\s*(?:rb|k)\b/i);
+      if (mRb) return parseInt(mRb[1], 10) * 1000;
+      const mRp = text.match(/rp\.?\s*(\d{1,3}(?:[.,]\d{3})+)/i);
+      if (mRp) return parseInt(mRp[1].replace(/[.,]/g, ''), 10);
+      return 0;
     }
 
     function formatRupiah(num) {
@@ -843,7 +865,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       }
     }
 
-    // Cek paralel 2 batch sekaligus dengan timeout, auto-retry 1x, dan tombol Stop
+    // Cek 8 link paralel sekaligus (1 link per request -> progres langsung gerak)
     async function checkLinksViaWorker(links, onProgress, onBatchResult) {
       const allResults = new Array(links.length);
       stopRequested = false;
@@ -868,7 +890,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
             } catch (err) {
               if (stopRequested) break;
               if (attempt === 1) {
-                await sleep(400);
+                await sleep(300);
               } else {
                 const reason = err && err.name === 'AbortError'
                   ? 'Timeout (server lambat)'
@@ -905,13 +927,14 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       showToast('Menghentikan proses...');
     }
 
-    // Pre-parse teks input
+    // Pre-parse teks input (deteksi link, user, dan nominal dari teks sekitar)
     function preParseInput(rawText) {
       const lines = rawText.split(/\r?\n/);
       const existingNorms = new Set(vouchers.map(v => normalizeLink(v.link)));
       const seenInBatch = new Set();
 
       let currentUser = '-';
+      let currentNom = 0;
       const uniqueToCheck = [];
       const duplicates = [];
 
@@ -923,6 +946,9 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
           currentUser = line.replace(/^👤\s*/, '').trim() || '-';
           continue;
         }
+
+        const foundNom = detectNominalFromText(line);
+        if (foundNom > 0) currentNom = foundNom;
 
         const urls = line.match(/https?:\/\/[^\s"'<>]+/gi);
         if (urls) {
@@ -938,7 +964,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
               continue;
             }
             seenInBatch.add(norm);
-            uniqueToCheck.push({ link: clean, norm, user: currentUser });
+            uniqueToCheck.push({ link: clean, norm, user: currentUser, detectedNom: currentNom });
           }
         }
       }
@@ -950,6 +976,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       const raw = document.getElementById('bulkInput').value;
       const box = document.getElementById('parsePreview');
       const valBtn = document.getElementById('btnValidate');
+      const fastBtn = document.getElementById('btnFastSave');
 
       validatedReadyItems = [];
       document.getElementById('validationSection').style.display = 'none';
@@ -958,8 +985,9 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       if (!raw.trim()) {
         preParsedItems = [];
         preDupItems = [];
-        box.innerHTML = 'Tempel link di atas, lalu tekan <b>Validasi Link</b> untuk cek status &amp; nominal otomatis.';
+        box.innerHTML = 'Tempel link di atas, lalu pilih <b>⚡ Simpan Cepat</b> atau <b>🔍 Validasi Link</b>.';
         valBtn.textContent = '🔍 Validasi Link (0)';
+        fastBtn.textContent = '⚡ Simpan Cepat (0)';
         return;
       }
 
@@ -968,10 +996,58 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       preDupItems = duplicates;
 
       box.innerHTML = `
-        <div><b>${uniqueToCheck.length} link unik</b> siap divalidasi${duplicates.length ? ` • <span style="color:#c084fc"><b>${duplicates.length} link dobel</b> langsung disaring</span>` : ''}</div>
-        <div style="color:var(--muted); margin-top:4px;">Tekan tombol <b>Validasi Link</b> untuk mengecek nominal, ID voucher, dan status aktif/terpakai.</div>
+        <div><b>${uniqueToCheck.length} link unik</b> siap diproses${duplicates.length ? ` • <span style="color:#c084fc"><b>${duplicates.length} link dobel</b> langsung disaring</span>` : ''}</div>
+        <div style="color:var(--muted); margin-top:4px;">Klik <b>⚡ Simpan Cepat</b> untuk langsung simpan (instan), atau <b>🔍 Validasi Link</b> untuk cek status server.</div>
       `;
       valBtn.textContent = `🔍 Validasi Link (${uniqueToCheck.length})`;
+      fastBtn.textContent = `⚡ Simpan Cepat (${uniqueToCheck.length})`;
+    }
+
+    function runFastSave() {
+      if (isBusy) return showToast('Masih ada proses pengecekan berjalan');
+      if (!preParsedItems.length) {
+        if (preDupItems.length) return showToast(`Semua (${preDupItems.length}) link sudah ada di tabungan`);
+        return showToast('Tempel link e.uvcr.me terlebih dahulu');
+      }
+
+      const defaultNom = parseInt(document.getElementById('fastNominal').value, 10) || 0;
+      const existingNorms = new Set(vouchers.map(v => normalizeLink(v.link)));
+      const now = Date.now();
+      const newItems = [];
+
+      for (const item of preParsedItems) {
+        const norm = normalizeLink(item.link);
+        if (existingNorms.has(norm)) continue;
+        existingNorms.add(norm);
+        const nom = item.detectedNom || defaultNom;
+        const title = nom > 0
+          ? `Voucher Digital Indomaret Rp. ${nom.toLocaleString('id-ID')}`
+          : 'Voucher Digital Indomaret';
+        newItems.push({
+          id: 'v_' + now + '_' + Math.random().toString(36).slice(2, 8),
+          user: item.user || '-',
+          title,
+          nominal: nom,
+          link: item.link,
+          idVoucher: null,
+          expiredAt: null,
+          redeemedAt: null,
+          status: 'ready',
+          createdAt: now,
+          usedAt: null,
+          lastCheckedAt: null,
+        });
+      }
+
+      if (!newItems.length) return showToast('Semua link sudah ada di tabungan');
+
+      vouchers = [...newItems, ...vouchers];
+      saveData();
+      document.getElementById('bulkInput').value = '';
+      updateInputPreScan();
+      haptic('success');
+      showToast(`⚡ ${newItems.length} voucher langsung tersimpan!`);
+      document.querySelector('.nav-btn[data-tab="vault"]').click();
     }
 
     async function runInputValidation() {
@@ -981,6 +1057,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       }
 
       const btn = document.getElementById('btnValidate');
+      const fastBtn = document.getElementById('btnFastSave');
       const progWrap = document.getElementById('valProgress');
       const progText = document.getElementById('valProgressText');
       const progFill = document.getElementById('valProgressFill');
@@ -1006,10 +1083,11 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
 
       isBusy = true;
       btn.disabled = true;
+      fastBtn.disabled = true;
       btn.textContent = 'Mengecek...';
       progWrap.classList.add('show');
       progText.textContent = `Memvalidasi 0 / ${preParsedItems.length} link...`;
-      progFill.style.width = '5%';
+      progFill.style.width = '3%';
 
       try {
         const linksToCheck = preParsedItems.map(x => x.link);
@@ -1143,12 +1221,13 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       } finally {
         isBusy = false;
         btn.disabled = false;
+        fastBtn.disabled = false;
         btn.textContent = `🔍 Validasi Link (${preParsedItems.length})`;
         setTimeout(() => progWrap.classList.remove('show'), 500);
       }
     }
 
-    // Refresh 1 voucher atau semua voucher Ready (auto-save tiap batch)
+    // Refresh 1 voucher atau semua voucher Ready (auto-save tiap hasil)
     async function refreshVouchers(targetList, isSingle = false) {
       if (isBusy) return;
       if (!targetList.length) return showToast('Tidak ada voucher Ready untuk dicek');
@@ -1163,7 +1242,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       if (!isSingle) {
         progWrap.classList.add('show');
         progText.textContent = `Memeriksa 0 / ${targetList.length} voucher...`;
-        progFill.style.width = '5%';
+        progFill.style.width = '3%';
       }
 
       let stillReady = 0;
@@ -1299,7 +1378,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
           <div class="empty">
             <div class="emoji">📭</div>
             <div style="font-weight:600; color:var(--text); margin-bottom:4px;">Belum ada voucher di filter ini</div>
-            <div style="font-size:12px;">Pindah ke tab <b>Input</b> untuk memvalidasi &amp; menambahkan stok baru.</div>
+            <div style="font-size:12px;">Pindah ke tab <b>Input</b> untuk menambahkan stok baru.</div>
           </div>`;
         return;
       }
@@ -1484,6 +1563,7 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
       document.getElementById('bulkInput').value = '';
       updateInputPreScan();
     };
+    document.getElementById('btnFastSave').onclick = runFastSave;
     document.getElementById('btnValidate').onclick = runInputValidation;
     document.getElementById('btnSaveValidated').onclick = () => {
       if (!validatedReadyItems.length) {
