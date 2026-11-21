@@ -661,9 +661,9 @@ https://e.uvcr.me/aaaa/bbbb"></textarea>
   <script>
     const STORAGE_KEY = 'voucher_vault_indomaret_v1';
     const WORKER_URL = 'https://voucher-bot.iqoo15rakmal.workers.dev';
-    const CHECK_BATCH_SIZE = 5;
-    const CHECK_CONCURRENCY = 2; // 2 batch paralel = 10 link sekaligus
-    const FETCH_TIMEOUT_MS = 20000;
+    const CHECK_BATCH_SIZE = 1;
+    const CHECK_CONCURRENCY = 5; // 5 link jalan bareng, progres langsung gerak tiap 1 link selesai
+    const FETCH_TIMEOUT_MS = 12000;
     const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
     if (tg && tg.initData) {
